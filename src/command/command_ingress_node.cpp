@@ -81,7 +81,7 @@ void CommandIngressNode::spin_once() {
       std::cout << "[CommandIngressNode] Routing JSON to Radxa Service: " << topic_str << std::endl;
       final_mcu_response = RadxaServices::process_command(j);
       
-    } else if (topic_str == "/commands/camera_rotation" || desc->source == TopicSource::UART || desc->topic_id == TID_CMD_CAMERA_ROTATION) {
+    } else if (desc->sensor_id != -1 && (topic_str.find("/commands/") == 0 || desc->topic_id == TID_CMD_CAMERA_ROTATION)) {
       // ── MCU-Bound Commands (Binary Protocol) ───────────────────────────────
       OroPacket pkt{};
       pkt.start = START_BYTE;
@@ -89,8 +89,10 @@ void CommandIngressNode::spin_once() {
       pkt.id_seq = PACK_ID_SEQ(cmd_seq_, static_cast<uint8_t>(desc->sensor_id));
       cmd_seq_ = (cmd_seq_ + 1) & 0x0F;
 
-      // Pack float as fixed-point for camera, or raw int for others
-      if (desc->topic_id == TID_CMD_CAMERA_ROTATION) {
+      // Pack float as fixed-point for specific actuators, or raw int for others
+      if (desc->topic_id == TID_CMD_CAMERA_ROTATION || 
+          desc->topic_id == TID_CMD_DISPLAY || 
+          desc->topic_id == TID_CMD_LED) {
         pack_value_i32(pkt.value, static_cast<int32_t>(value * 100.0f));
       } else {
         pack_value_i32(pkt.value, static_cast<int32_t>(value));

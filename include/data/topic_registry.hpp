@@ -96,9 +96,14 @@ static constexpr uint8_t TID_TREAT_SORTER_IR = 32;
 static constexpr uint8_t TID_TREAT_THROWER_IR = 33;
 static constexpr uint8_t TID_THERMAL_ARRAY = 34;
 static constexpr uint8_t TID_NAV_BUTTON = 35;
-static constexpr uint8_t TID_OVERBOUND = 36;
+static constexpr uint8_t TID_CMD_PUMP = 36;
+static constexpr uint8_t TID_CMD_LID_1 = 37;
+static constexpr uint8_t TID_CMD_LID_2 = 38;
+static constexpr uint8_t TID_CMD_DISPLAY = 39;
+static constexpr uint8_t TID_CMD_LED = 40;
+static constexpr uint8_t TID_OVERBOUND = 41;
 
-static constexpr uint8_t TOPIC_COUNT = 37;
+static constexpr uint8_t TOPIC_COUNT = 42;
 
 // ── The Registry ────────────────────────────────────────────────────────────
 
@@ -109,7 +114,7 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     {  0,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/food_weight/bowl_1",              1.0f,   5000,   SID_LOAD_LEFT    },
     {  1,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/food_weight/bowl_2",              1.0f,   5000,   SID_LOAD_RIGHT   },
     {  2,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/water_level/tank",                0.5f,   5000,   SID_WATER_LEVEL  },
-    {  3,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/water_level/bowl",                0.0f,   3000,   SID_WATER_BOWL   },
+    {  3,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/water_level/bowl",                0.5f,   3000,   SID_WATER_BOWL   },
     {  4,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/environment/humidity",            0.5f,  10000,   SID_HUMIDITY     },
     {  5,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/environment/temperature",         0.1f,  10000,   SID_TEMPERATURE  },
     {  6,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/limit_switch_1",  0.0f,  10000,   SID_LIMIT_SW1    },
@@ -149,7 +154,13 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 33,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/sensors/treat/thrower_ir",                0.0f,   1000,   -1                 },
     { 34,  TopicCategory::THERMAL, PublishPolicy::PERIODIC,     TopicSource::SYSTEM, "/sensors/thermal/ir_array",                0.0f,    100,   -1                 },
     { 35,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/nav_button",                      0.0f,      0,   SID_NAV_BUTTON    },
-    { 36,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
+    // ── Actuator Commands (MCU Bound) ───────────────────────────────────
+    { 36,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/pump",                           0.0f,      0,   PID_PUMP          },
+    { 37,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/lid/1",                          0.0f,      0,   PID_LID1_STEPPER  },
+    { 38,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/lid/2",                          0.0f,      0,   PID_LID2_STEPPER  },
+    { 39,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/display",                        0.0f,      0,   PID_DISPLAY       },
+    { 40,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/led",                            0.0f,      0,   PID_INDICATOR_LED },
+    { 41,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
 }};
 // clang-format on
 
