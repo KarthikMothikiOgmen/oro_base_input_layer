@@ -102,9 +102,11 @@ static constexpr uint8_t TID_CMD_LID_2 = 38;
 static constexpr uint8_t TID_CMD_DISPLAY = 39;
 static constexpr uint8_t TID_CMD_LED = 40;
 static constexpr uint8_t TID_CMD_CAMERA_SERVO = 41;
-static constexpr uint8_t TID_OVERBOUND = 42;
+static constexpr uint8_t TID_LID1_MOTOR_STATUS = 42;
+static constexpr uint8_t TID_LID2_MOTOR_STATUS = 43;
+static constexpr uint8_t TID_OVERBOUND = 44;
 
-static constexpr uint8_t TOPIC_COUNT = 43;
+static constexpr uint8_t TOPIC_COUNT = 45;
 
 // ── The Registry ────────────────────────────────────────────────────────────
 
@@ -115,7 +117,7 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     {  0,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/food_weight/bowl_1",              1.0f,   5000,   SID_LOAD_LEFT    },
     {  1,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/food_weight/bowl_2",              1.0f,   5000,   SID_LOAD_RIGHT   },
     {  2,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/water_level/tank",                0.5f,   5000,   SID_WATER_LEVEL  },
-    {  3,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/water_level/bowl",                0.5f,   3000,   SID_WATER_BOWL   },
+    {  3,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/water_level/bowl",                0.0f,      0,   SID_WATER_BOWL   },
     {  4,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/environment/humidity",            0.5f,  10000,   SID_HUMIDITY     },
     {  5,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/environment/temperature",         0.1f,  10000,   SID_TEMPERATURE  },
     {  6,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/limit_switch_1",  0.0f,  10000,   SID_LIMIT_SW1    },
@@ -136,6 +138,8 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 18,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/stepper_motor",    0.0f,      0,   PID_CAMERA_STEPPER },
     { 19,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::UART,   "/status/display/seven_segment",            0.0f,      0,   PID_DISPLAY      },
     { 20,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::UART,   "/status/led_indicator",                    0.0f,      0,   PID_INDICATOR_LED},
+    { 43,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/1",                      0.0f,      0,   PID_LID1_STEPPER },
+    { 44,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/2",                      0.0f,      0,   PID_LID2_STEPPER },
 
     // ── Commands (/commands/...) ──────────────────────────────────────────
     { 21,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/camera_rotation",                0.0f,      0,   PID_CAMERA_STEPPER },
@@ -219,13 +223,13 @@ inline const TopicDescriptor *lookup_by_peripheral_id(uint8_t pid) {
     return nullptr;
 
   static constexpr std::array<uint8_t, 16> PID_TO_TID = {
-      {TID_WATER_PUMP,    // PID_PUMP           → 17
-       TID_LID_1,         // PID_LID1_STEPPER   → 15
-       TID_LID_2,         // PID_LID2_STEPPER   → 16
-       TID_STEPPER_MOTOR, // PID_CAMERA_STEPPER → 18
-       TID_SEVEN_SEGMENT, // PID_DISPLAY        → 19
-       TID_LED_INDICATOR, // PID_INDICATOR_LED  → 20
-       TID_CMD_CAMERA_SERVO, // PID_CAMERA_SERVO  → 41
+      {TID_WATER_PUMP,         // PID_PUMP           → 17
+       TID_LID1_MOTOR_STATUS,  // PID_LID1_STEPPER   → 42
+       TID_LID2_MOTOR_STATUS,  // PID_LID2_STEPPER   → 43
+       TID_STEPPER_MOTOR,      // PID_CAMERA_STEPPER → 18
+       TID_SEVEN_SEGMENT,      // PID_DISPLAY        → 19
+       TID_LED_INDICATOR,      // PID_INDICATOR_LED  → 20
+       TID_CMD_CAMERA_SERVO,   // PID_CAMERA_SERVO   → 41
        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
 
   uint8_t tid = PID_TO_TID[pid];
