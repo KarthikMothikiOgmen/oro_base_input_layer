@@ -101,9 +101,10 @@ static constexpr uint8_t TID_CMD_LID_1 = 37;
 static constexpr uint8_t TID_CMD_LID_2 = 38;
 static constexpr uint8_t TID_CMD_DISPLAY = 39;
 static constexpr uint8_t TID_CMD_LED = 40;
-static constexpr uint8_t TID_OVERBOUND = 41;
+static constexpr uint8_t TID_CMD_CAMERA_SERVO = 41;
+static constexpr uint8_t TID_OVERBOUND = 42;
 
-static constexpr uint8_t TOPIC_COUNT = 42;
+static constexpr uint8_t TOPIC_COUNT = 43;
 
 // ── The Registry ────────────────────────────────────────────────────────────
 
@@ -129,8 +130,8 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 14,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/connectivity/state",               0.0f,  30000,   -1               },
 
     // ── Status (/status/...) ────────────────────────────────────────────
-    { 15,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid/1",                            0.0f,      0,   PID_LID1_STEPPER },
-    { 16,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid/2",                            0.0f,      0,   PID_LID2_STEPPER },
+    { 15,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid/1",                            0.0f,      0,   SID_LID1_HALL    },
+    { 16,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid/2",                            0.0f,      0,   SID_LID2_HALL    },
     { 17,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/water_pump",                       0.0f,      0,   PID_PUMP         },
     { 18,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/stepper_motor",    0.0f,      0,   PID_CAMERA_STEPPER },
     { 19,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::UART,   "/status/display/seven_segment",            0.0f,      0,   PID_DISPLAY      },
@@ -160,7 +161,8 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 38,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/lid/2",                          0.0f,      0,   PID_LID2_STEPPER  },
     { 39,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/display",                        0.0f,      0,   PID_DISPLAY       },
     { 40,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/led",                            0.0f,      0,   PID_INDICATOR_LED },
-    { 41,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
+    { 41,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/camera_rotation_servo",          0.0f,      0,   PID_CAMERA_SERVO  },
+    { 42,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
 }};
 // clang-format on
 
@@ -193,10 +195,10 @@ inline const TopicDescriptor *lookup_by_sensor_id(uint8_t sid) {
       TID_HOME_SENSOR,        // SID_HOME_SENSOR  → 9
       TID_POWER_SWITCH,       // SID_POWER_SW     → 10
       TID_BATTERY_LEVEL,      // SID_BATTERY      → 11
-      TID_HEARTBEAT,          // SID_HEARTBEAT    → 13
-      0xFF,                   // 13 (Reserved)
-      TID_NAV_BUTTON,         // SID_NAV_BUTTON   → 35 (0x0E)
-      0xFF,                   // 15
+      TID_HEARTBEAT,          // SID_HEARTBEAT    → 12
+      TID_NAV_BUTTON,         // SID_NAV_BUTTON   → 13 (0x0D)
+      TID_LID_1,              // SID_LID1_HALL    → 14 (0x0E)
+      TID_LID_2,              // SID_LID2_HALL    → 15 (0x0F)
   }};
 
   if (sid >= SID_COUNT) {
@@ -223,7 +225,8 @@ inline const TopicDescriptor *lookup_by_peripheral_id(uint8_t pid) {
        TID_STEPPER_MOTOR, // PID_CAMERA_STEPPER → 18
        TID_SEVEN_SEGMENT, // PID_DISPLAY        → 19
        TID_LED_INDICATOR, // PID_INDICATOR_LED  → 20
-       0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
+       TID_CMD_CAMERA_SERVO, // PID_CAMERA_SERVO  → 41
+       0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
 
   uint8_t tid = PID_TO_TID[pid];
   if (tid == 0xFF || tid >= TOPIC_COUNT)

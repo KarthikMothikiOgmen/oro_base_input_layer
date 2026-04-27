@@ -77,9 +77,9 @@ enum SensorID : uint8_t {
   SID_POWER_SW = 0x0A,    // Power switch
   SID_BATTERY = 0x0B,     // Battery level
   SID_HEARTBEAT = 0x0C,   // Device heartbeat
-  // SID_LID_1 = 0x0D,       // Lid control 1 status
-  SID_NAV_BUTTON = 0x0E,  // Navigation button state (display cycling)
-  SID_RESERVED_15 = 0x0F, // Reserved for future use
+  SID_NAV_BUTTON = 0x0D,  // Navigation button state (display cycling)
+  SID_LID1_HALL = 0x0E,   // Lid 1 Hall sensors (bits 0=closed, 1=opened)
+  SID_LID2_HALL = 0x0F,   // Lid 2 Hall sensors (bits 0=closed, 1=opened)
 
   SID_COUNT = 16 // Max sensor IDs in 4-bit field
 };
@@ -95,6 +95,7 @@ enum PeripheralID : uint8_t {
   PID_CAMERA_STEPPER = 0x03,
   PID_DISPLAY = 0x04,
   PID_INDICATOR_LED = 0x05,
+  PID_CAMERA_SERVO = 0x06,
 };
 
 // ── OroPacket: 8-byte fixed-size wire format ────────────────────────────────
