@@ -98,6 +98,14 @@ enum PeripheralID : uint8_t {
   PID_CAMERA_SERVO = 0x06,
 };
 
+// ── ACK Status Codes (used in MSG_ACK payload) ─────────────────────────────
+
+static constexpr int32_t ACK_SUCCESS = 0;
+static constexpr int32_t ACK_ERROR = 1;
+static constexpr int32_t ACK_TIMEOUT = 2;
+static constexpr int32_t ACK_BUSY = 3;
+static constexpr int32_t ACK_INVALID = 4;
+
 // ── OroPacket: 8-byte fixed-size wire format ────────────────────────────────
 
 struct OroPacket {

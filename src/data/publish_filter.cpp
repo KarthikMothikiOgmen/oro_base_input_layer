@@ -17,9 +17,14 @@ bool PublishFilter::should_publish(const TopicDescriptor& desc,
     switch (desc.policy) {
 
     case PublishPolicy::ON_CHANGE: {
-        // Digital sensors: publish only when state differs from last published
-        if (!st.ever_published || st.last_digital_state != state) {
+        // Publish if state or analog value differs (covers both digital and analog sensors)
+        bool changed = !st.ever_published || 
+                       (st.last_digital_state != state) ||
+                       (std::fabs(value - st.last_analog_value) > 1e-5f);
+
+        if (changed) {
             st.last_digital_state   = state;
+            st.last_analog_value    = value;
             st.last_publish_time_ms = now_ms;
             st.ever_published       = true;
             return true;

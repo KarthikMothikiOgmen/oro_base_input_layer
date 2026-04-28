@@ -3,7 +3,7 @@
 // ============================================================================
 // topic_registry.hpp — Centralized ZMQ Topic Routing Table
 //
-// Defines all 22 ZMQ PUB topics with their routing metadata. Provides:
+// Defines all 45 ZMQ PUB topics with their routing metadata. Provides:
 //   - O(1) lookup by topic ID (array index)
 //   - O(1) lookup by sensor ID (for UART-originated data)
 //   - Publish policy, threshold, and period configuration
@@ -105,8 +105,10 @@ static constexpr uint8_t TID_CMD_CAMERA_SERVO = 41;
 static constexpr uint8_t TID_LID1_MOTOR_STATUS = 42;
 static constexpr uint8_t TID_LID2_MOTOR_STATUS = 43;
 static constexpr uint8_t TID_OVERBOUND = 44;
+static constexpr uint8_t TID_SERVO_MOTOR_STATUS = 45;
 
-static constexpr uint8_t TOPIC_COUNT = 45;
+// ── Topic Count: total number of topic descriptors in the registry ───────────
+static constexpr uint8_t TOPIC_COUNT = 46;
 
 // ── The Registry ────────────────────────────────────────────────────────────
 
@@ -132,14 +134,18 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 14,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/connectivity/state",               0.0f,  30000,   -1               },
 
     // ── Status (/status/...) ────────────────────────────────────────────
-    { 15,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid/1",                            0.0f,      0,   SID_LID1_HALL    },
-    { 16,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid/2",                            0.0f,      0,   SID_LID2_HALL    },
+    //  Lid physical state: 0.0=closed, 1.0=open, 3.0=transition
+    { 15,  TopicCategory::ANALOG,  PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid/1",                            0.0f,      0,   SID_LID1_HALL    },
+    //  Lid physical state: 0.0=closed, 1.0=open, 3.0=transition
+    { 16,  TopicCategory::ANALOG,  PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid/2",                            0.0f,      0,   SID_LID2_HALL    },
+    //  Pump state: 0=off, 1=on
     { 17,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/water_pump",                       0.0f,      0,   PID_PUMP         },
+    //  Camera rotation motor: 0=idle, 1=running
     { 18,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/stepper_motor",    0.0f,      0,   PID_CAMERA_STEPPER },
+    //  Display: integer value shown on 7-segment (fixed-point ×100, decode with fixed_to_float)
     { 19,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::UART,   "/status/display/seven_segment",            0.0f,      0,   PID_DISPLAY      },
+    //  LED mode (ANALOG float): 1.0=Food bowl 1 LED, 2.0=Food bowl 2 LED, 3.0=Water tank LED
     { 20,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::UART,   "/status/led_indicator",                    0.0f,      0,   PID_INDICATOR_LED},
-    { 43,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/1",                      0.0f,      0,   PID_LID1_STEPPER },
-    { 44,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/2",                      0.0f,      0,   PID_LID2_STEPPER },
 
     // ── Commands (/commands/...) ──────────────────────────────────────────
     { 21,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/camera_rotation",                0.0f,      0,   PID_CAMERA_STEPPER },
@@ -158,7 +164,8 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 32,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/sensors/treat/sorter_ir",                 0.0f,   1000,   -1                 },
     { 33,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/sensors/treat/thrower_ir",                0.0f,   1000,   -1                 },
     { 34,  TopicCategory::THERMAL, PublishPolicy::PERIODIC,     TopicSource::SYSTEM, "/sensors/thermal/ir_array",                0.0f,    100,   -1                 },
-    { 35,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/nav_button",                      0.0f,      0,   SID_NAV_BUTTON    },
+    //  Nav button cycles 7-segment display mode on press: 1.0=Food bowl 1, 2.0=Food bowl 2, 3.0=Water tank level
+    { 35,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::UART,   "/sensors/nav_button",                      0.0f,      0,   SID_NAV_BUTTON    },
     // ── Actuator Commands (MCU Bound) ───────────────────────────────────
     { 36,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/pump",                           0.0f,      0,   PID_PUMP          },
     { 37,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/lid/1",                          0.0f,      0,   PID_LID1_STEPPER  },
@@ -166,7 +173,13 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 39,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/display",                        0.0f,      0,   PID_DISPLAY       },
     { 40,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/led",                            0.0f,      0,   PID_INDICATOR_LED },
     { 41,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/camera_rotation_servo",          0.0f,      0,   PID_CAMERA_SERVO  },
-    { 42,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
+    //  Lid motor status: 0=idle, 1=running
+    { 42,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/1",                      0.0f,      0,   PID_LID1_STEPPER },
+    //  Lid motor status: 0=idle, 1=running
+    { 43,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/2",                      0.0f,      0,   PID_LID2_STEPPER },
+    { 44,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
+    //  Camera home servo motor: 0=idle, 1=running (PID_CAMERA_SERVO)
+    { 45,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/servo_motor",      0.0f,      0,   PID_CAMERA_SERVO  },
 }};
 // clang-format on
 
@@ -229,7 +242,7 @@ inline const TopicDescriptor *lookup_by_peripheral_id(uint8_t pid) {
        TID_STEPPER_MOTOR,      // PID_CAMERA_STEPPER → 18
        TID_SEVEN_SEGMENT,      // PID_DISPLAY        → 19
        TID_LED_INDICATOR,      // PID_INDICATOR_LED  → 20
-       TID_CMD_CAMERA_SERVO,   // PID_CAMERA_SERVO   → 41
+       TID_SERVO_MOTOR_STATUS, // PID_CAMERA_SERVO   → 45
        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
 
   uint8_t tid = PID_TO_TID[pid];

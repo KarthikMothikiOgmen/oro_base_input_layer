@@ -31,6 +31,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <map>
 
 namespace oro {
 
@@ -164,10 +165,14 @@ private:
     std::array<uint8_t, SID_COUNT> last_seq_{};
 
     // Command-ACK Synchronization
-    std::mutex ack_mtx_;
-    std::condition_variable ack_cv_;
-    uint8_t last_ack_seq_ = 0xFF;
-    uint8_t last_ack_id_ = 0xFF;
+    struct PendingAck {
+        std::mutex mtx;
+        std::condition_variable cv;
+        int32_t status = -1;
+        bool received = false;
+    };
+    std::mutex pending_acks_mtx_;
+    std::map<uint8_t, std::shared_ptr<PendingAck>> pending_acks_;
 
     // Rolling sequence numbers for host-generated system topics (4-bit, 0–15)
     uint8_t clock_seq_ = 0;

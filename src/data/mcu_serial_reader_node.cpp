@@ -177,15 +177,19 @@ void McuSerialReaderNode::command_rep_thread_func() {
         std::cout << "[CommandREPThread] Forwarding command to MCU: ID="
                   << (int)target_id << " SEQ=" << (int)target_seq << std::endl;
 
-        // Reset last ACK state before sending
+        uint8_t ack_key = (target_id & 0x0F) | ((target_seq & 0x0F) << 4);
+        auto pending = std::make_shared<PendingAck>();
         {
-          std::lock_guard<std::mutex> lock(ack_mtx_);
-          last_ack_seq_ = 0xFF;
-          last_ack_id_ = 0xFF;
+          std::lock_guard<std::mutex> lock(pending_acks_mtx_);
+          pending_acks_[ack_key] = pending;
         }
 
         // Push to serial TX queue
         if (!tx_queue_.try_push(pkt)) {
+          {
+            std::lock_guard<std::mutex> lock(pending_acks_mtx_);
+            pending_acks_.erase(ack_key);
+          }
           std::string reply_str =
               "{\"status\":\"error\",\"message\":\"tx_queue_full\"}";
           zmq::message_t reply(reply_str.size());
@@ -194,16 +198,25 @@ void McuSerialReaderNode::command_rep_thread_func() {
           continue;
         }
 
-        // Wait for matching ACK
+        // Wait for matching ACK (up to 5 seconds for completion)
         auto start_wait = std::chrono::steady_clock::now();
         bool success = false;
+        int32_t ack_status = -1;
         {
-          std::unique_lock<std::mutex> lock(ack_mtx_);
-          success =
-              ack_cv_.wait_for(lock, std::chrono::milliseconds(500), [&]() {
-                return last_ack_seq_ == target_seq && last_ack_id_ == target_id;
-              });
+          std::unique_lock<std::mutex> lock(pending->mtx);
+          success = pending->cv.wait_for(lock, std::chrono::seconds(5), [&]() {
+            return pending->received;
+          });
+          if (success)
+            ack_status = pending->status;
         }
+
+        // Cleanup map
+        {
+          std::lock_guard<std::mutex> lock(pending_acks_mtx_);
+          pending_acks_.erase(ack_key);
+        }
+
         auto end_wait = std::chrono::steady_clock::now();
         auto latency_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                               end_wait - start_wait)
@@ -211,8 +224,9 @@ void McuSerialReaderNode::command_rep_thread_func() {
 
         std::string reply_str;
         if (success) {
-          reply_str = "{\"status\":\"success\",\"latency_ms\":" +
-                      std::to_string(latency_ms) + "}";
+          std::string status_str = (ack_status == ACK_SUCCESS) ? "success" : "error";
+          reply_str = "{\"status\":\"" + status_str + "\",\"latency_ms\":" +
+                      std::to_string(latency_ms) + ",\"fw_status\":" + std::to_string(ack_status) + "}";
         } else {
           reply_str = "{\"status\":\"timeout\",\"latency_ms\":" +
                       std::to_string(latency_ms) + "}";
@@ -337,12 +351,24 @@ void McuSerialReaderNode::dispatch_packet(const OroPacket &pkt) {
   const TopicDescriptor *desc = nullptr;
 
   if (msg_type == MSG_ACK) {
+    uint8_t ack_key = (id & 0x0F) | ((seq_num & 0x0F) << 4);
+    std::shared_ptr<PendingAck> pending;
     {
-      std::lock_guard<std::mutex> lock(ack_mtx_);
-      last_ack_seq_ = seq_num;
-      last_ack_id_ = id;
+      std::lock_guard<std::mutex> lock(pending_acks_mtx_);
+      auto it = pending_acks_.find(ack_key);
+      if (it != pending_acks_.end()) {
+        pending = it->second;
+      }
     }
-    ack_cv_.notify_all();
+
+    if (pending) {
+      {
+        std::lock_guard<std::mutex> lock(pending->mtx);
+        pending->status = extract_value_i32(pkt.value);
+        pending->received = true;
+      }
+      pending->cv.notify_all();
+    }
     return;
   }
 

@@ -135,7 +135,7 @@ graph TB
 |:---|:---|:---|:---|
 | **Main thread** | `main.cpp` | `spin_once()` on all 3 nodes: periodic publishes, system topics, command routing | Yes |
 | **Serial I/O** | `McuSerialReaderNode` | Non-blocking UART read → decode → CRC → dispatch → ZMQ PUB; drain tx_queue → UART write | Yes |
-| **Command REP** | `McuSerialReaderNode` | Accept `OroPacket` via IPC → push to tx_queue → wait for ACK (500ms timeout) | No |
+| **Command REP** | `McuSerialReaderNode` | Accept `OroPacket` via IPC → push to tx_queue_ → wait for specific completion ACK (5s timeout) | No |
 | **Cloud Receiver** | `CommandIngressNode` | Accept JSON on tcp:5555 → forward to ROUTER → relay MCU result back | No |
 
 ### Directory Layout
@@ -191,7 +191,7 @@ graph LR
     C -->|"CRC fail"| B2["skip byte,<br/>re-scan"]
     D -->|"MSG_SENSOR_DATA"| E["lookup_by_sensor_id()<br/>O(1) SID→TID"]
     D -->|"MSG_PERIPHERAL_STATE"| F["lookup_by_peripheral_id()<br/>O(1) PID→TID"]
-    D -->|"MSG_ACK"| G["Notify ack_cv_<br/>(condition variable)"]
+    D -->|"MSG_ACK"| G["Match (ID, Seq) in PendingAckMap<br/>Notify specific CV"]
     E --> H["publish_analog/digital/encoder()"]
     F --> H
     H -->|"filter_.should_publish()"| I["send_zmq_*()<br/>2-frame multipart"]
@@ -223,8 +223,8 @@ graph LR
 
     subgraph "Command REP Thread"
         RX_CMD["Recv OroPacket<br/>via IPC REP"] --> TX_PUSH["tx_queue_.try_push()"]
-        TX_PUSH --> WAIT["ack_cv_.wait_for(500ms)"]
-        WAIT --> REPLY["Send JSON result"]
+        TX_PUSH --> WAIT["Wait on CV in PendingAck struct<br/>(5s timeout)"]
+        WAIT --> REPLY["Send JSON result<br/>(includes fw_status + latency)"]
     end
 
     subgraph "Main Thread"
@@ -234,7 +234,7 @@ graph LR
     end
 
     TX_PUSH -.->|"lock-free SPSC"| TX_DRAIN
-    DECODE -.->|"ack_mtx_ + ack_cv_"| WAIT
+    DECODE -.->|"pending_acks_ map"| WAIT
 
     style READ fill:#1a1a2e,stroke:#0f3460,color:#fff
     style DECODE fill:#1a1a2e,stroke:#0f3460,color:#fff
@@ -246,7 +246,7 @@ graph LR
 |:---|:---|:---|:---|
 | `rx_queue_` | Serial → Main | `RingBuffer<uint8_t, 2048>` SPSC | ~~Unused~~ (decode moved to serial thread) |
 | `tx_queue_` | CMD REP → Serial | `RingBuffer<OroPacket, 32>` SPSC | Yes |
-| `ack_mtx_` + `ack_cv_` | Serial → CMD REP | `mutex` + `condition_variable` | Infrequent (command ACKs only) |
+| `pending_acks_` | Serial → CMD REP | `std::map<uint8_t, shared_ptr<PendingAck>>` | Infrequent (command ACKs only) |
 
 #### ZMQ Socket Routing
 
