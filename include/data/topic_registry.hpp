@@ -125,7 +125,7 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     {  6,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/limit_switch_1",  0.0f,  10000,   SID_LIMIT_SW1    },
     {  7,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/limit_switch_2",  0.0f,  10000,   SID_LIMIT_SW2    },
     {  8,  TopicCategory::ENCODER, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/sensors/camera_rotation/optical_encoder", 0.0f,      0,   SID_ENCODER      },
-    {  9,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/home",            0.0f,      0,   SID_HOME_SENSOR  },
+    {  9,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/home",            0.0f,   5000,   SID_HOME_SENSOR  },
     // ── System (/system/...) ────────────────────────────────────────────
     { 10,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/system/power/switch",                     0.0f,      0,   SID_POWER_SW     },
     { 11,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/system/power/battery_level",              1.0f,  60000,   SID_BATTERY      },
@@ -179,7 +179,7 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 43,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/2",                      0.0f,      0,   PID_LID2_STEPPER },
     { 44,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
     //  Camera home servo motor: 0=idle, 1=running (PID_CAMERA_SERVO)
-    { 45,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/servo_motor",      0.0f,      0,   PID_CAMERA_SERVO  },
+    { 45,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/servo_motor",      0.0f,   5000,   PID_CAMERA_SERVO  },
 }};
 // clang-format on
 

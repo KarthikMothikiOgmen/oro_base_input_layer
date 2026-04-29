@@ -76,7 +76,7 @@ void CommandIngressNode::spin_once() {
 
     if (!desc) {
       final_mcu_response = "{\"status\":\"error\",\"message\":\"unsupported_topic\"}";
-    } else if (desc->source == TopicSource::SYSTEM && desc->topic_id != TID_CMD_CAMERA_ROTATION) {
+    } else if (desc->sensor_id == -1 && desc->source == TopicSource::SYSTEM) {
       // ── Host-Side Services (JSON Native) ──────────────────────────────────
       std::cout << "[CommandIngressNode] Routing JSON to Radxa Service: " << topic_str << std::endl;
       final_mcu_response = RadxaServices::process_command(j);
@@ -91,6 +91,7 @@ void CommandIngressNode::spin_once() {
 
       // Pack float as fixed-point for specific actuators, or raw int for others
       if (desc->topic_id == TID_CMD_CAMERA_ROTATION || 
+          desc->topic_id == TID_CMD_CAMERA_SERVO ||
           desc->topic_id == TID_CMD_DISPLAY || 
           desc->topic_id == TID_CMD_LED) {
         pack_value_i32(pkt.value, static_cast<int32_t>(value * 100.0f));
@@ -105,6 +106,8 @@ void CommandIngressNode::spin_once() {
       std::cout << "[CommandIngressNode] Dispatching " << topic_str << " to MCU..." << std::endl;
       mcu_req_socket_->send(mcu_msg, zmq::send_flags::none);
 
+      std::cout << "[CommandIngressNode] Waiting for MCU ACK..." << std::endl;
+      
       // Wait for result from McuSerialReaderNode
       zmq::message_t mcu_response;
       if (mcu_req_socket_->recv(mcu_response, zmq::recv_flags::none)) {
