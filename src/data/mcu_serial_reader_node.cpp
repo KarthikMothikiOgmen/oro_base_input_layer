@@ -204,9 +204,8 @@ void McuSerialReaderNode::command_rep_thread_func() {
         int32_t ack_status = -1;
         {
           std::unique_lock<std::mutex> lock(pending->mtx);
-          success = pending->cv.wait_for(lock, std::chrono::seconds(5), [&]() {
-            return pending->received;
-          });
+          success = pending->cv.wait_for(lock, std::chrono::seconds(5),
+                                         [&]() { return pending->received; });
           if (success)
             ack_status = pending->status;
         }
@@ -224,9 +223,11 @@ void McuSerialReaderNode::command_rep_thread_func() {
 
         std::string reply_str;
         if (success) {
-          std::string status_str = (ack_status == ACK_SUCCESS) ? "success" : "error";
-          reply_str = "{\"status\":\"" + status_str + "\",\"latency_ms\":" +
-                      std::to_string(latency_ms) + ",\"fw_status\":" + std::to_string(ack_status) + "}";
+          std::string status_str =
+              (ack_status == ACK_SUCCESS) ? "success" : "error";
+          reply_str = "{\"status\":\"" + status_str +
+                      "\",\"latency_ms\":" + std::to_string(latency_ms) +
+                      ",\"fw_status\":" + std::to_string(ack_status) + "}";
         } else {
           reply_str = "{\"status\":\"timeout\",\"latency_ms\":" +
                       std::to_string(latency_ms) + "}";
@@ -272,10 +273,14 @@ void McuSerialReaderNode::spin_once() {
       send_zmq_analog(desc, hdr, st.last_analog_value);
       break;
     case TopicCategory::DIGITAL:
+    case TopicCategory::HEARTBEAT:
       send_zmq_digital(desc, hdr, st.last_digital_state);
       break;
     case TopicCategory::ENCODER:
       send_zmq_encoder(desc, hdr, st.last_encoder_ticks);
+      break;
+    case TopicCategory::THERMAL:
+      // TODO: Not implemented yet
       break;
     }
   });
@@ -434,6 +439,10 @@ void McuSerialReaderNode::dispatch_packet(const OroPacket &pkt) {
     publish_encoder(*desc, hdr, ticks);
     break;
   }
+  case TopicCategory::THERMAL: {
+    // TODO: Not implemented yet
+    break;
+  }
   }
 }
 
@@ -548,7 +557,8 @@ void McuSerialReaderNode::publish_system_data(uint64_t current_ms) {
 
     // 3. Terminal Log Throttling (Hybrid On-Change + Periodic for Internet)
     bool state_changed = (connectivity_state != last_conn_log_state_);
-    bool periodic_internet = (connectivity_state == 2 && (current_ms - last_conn_log_time_ms_ >= 30000));
+    bool periodic_internet = (connectivity_state == 2 &&
+                              (current_ms - last_conn_log_time_ms_ >= 30000));
 
     if (state_changed || periodic_internet) {
       if (connectivity_state == 1) {
@@ -616,15 +626,17 @@ void McuSerialReaderNode::connectivity_monitor_loop() {
 
   while (running_.load(std::memory_order_relaxed)) {
     // Perform lightweight probe: ping 8.8.8.8 with 2s timeout
-    // Using 8.8.8.8 is more robust than google.com as it avoids DNS resolution overhead/failures.
+    // Using 8.8.8.8 is more robust than google.com as it avoids DNS resolution
+    // overhead/failures.
     int res = std::system("ping -c 1 -W 2 8.8.8.8 > /dev/null 2>&1");
 
     // exit code 0 means success
     has_internet_ = (res == 0);
 
-    // Sleep for 5s before next probe (check running_ every 1s for graceful shutdown).
-    // The 5s interval ensures internet loss is detected within ~7s (5s sleep + 2s ping timeout).
-    // Terminal log throttling is handled separately in publish_system_data.
+    // Sleep for 5s before next probe (check running_ every 1s for graceful
+    // shutdown). The 5s interval ensures internet loss is detected within ~7s
+    // (5s sleep + 2s ping timeout). Terminal log throttling is handled
+    // separately in publish_system_data.
     for (int i = 0; i < 5 && running_.load(std::memory_order_relaxed); ++i) {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }

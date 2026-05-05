@@ -31,6 +31,9 @@ private:
 
   uint8_t cmd_seq_ = 0;
 
+  std::unique_ptr<zmq::socket_t> cmd_exec_push_socket_;
+  std::unique_ptr<zmq::socket_t> cmd_exec_pull_socket_;
+
   std::unique_ptr<CloudReceiver> cloud_thread_;
 };
 
