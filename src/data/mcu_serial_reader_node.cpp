@@ -198,13 +198,13 @@ void McuSerialReaderNode::command_rep_thread_func() {
           continue;
         }
 
-        // Wait for matching ACK (up to 5 seconds for completion)
+        // Wait for matching ACK (up to 10 seconds for completion)
         auto start_wait = std::chrono::steady_clock::now();
         bool success = false;
         int32_t ack_status = -1;
         {
           std::unique_lock<std::mutex> lock(pending->mtx);
-          success = pending->cv.wait_for(lock, std::chrono::seconds(5),
+          success = pending->cv.wait_for(lock, std::chrono::seconds(10),
                                          [&]() { return pending->received; });
           if (success)
             ack_status = pending->status;
@@ -566,9 +566,9 @@ void McuSerialReaderNode::publish_system_data(uint64_t current_ms) {
                      "network but NO INTERNET ACCESS!"
                   << std::endl;
       } else if (connectivity_state == 2) {
-        std::cout << "[McuSerialReaderNode] INFO: Wifi is connected and has "
-                     "internet access"
-                  << std::endl;
+        // std::cout << "[McuSerialReaderNode] INFO: Wifi is connected and has "
+        //              "internet access"
+        //           << std::endl;
       } else {
         std::cerr << "[McuSerialReaderNode] WARNING: Wifi isn't connected"
                   << std::endl;

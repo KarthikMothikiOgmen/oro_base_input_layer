@@ -100,8 +100,8 @@ enum PeripheralID : uint8_t {
 
 // ── ACK Status Codes (used in MSG_ACK payload) ─────────────────────────────
 
-static constexpr int32_t ACK_SUCCESS = 0;
-static constexpr int32_t ACK_ERROR = 1;
+static constexpr int32_t ACK_ERROR = 0;
+static constexpr int32_t ACK_SUCCESS = 1;
 static constexpr int32_t ACK_TIMEOUT = 2;
 static constexpr int32_t ACK_BUSY = 3;
 static constexpr int32_t ACK_INVALID = 4;

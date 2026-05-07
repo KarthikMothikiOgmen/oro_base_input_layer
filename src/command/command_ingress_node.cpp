@@ -56,10 +56,12 @@ void CommandIngressNode::spin_once() {
     return;
 
   zmq::message_t empty;
-  internal_router_socket_->recv(empty, zmq::recv_flags::none);
+  // (void) cast used to suppress [[nodiscard]] warning; blocking recv expected here
+  (void)internal_router_socket_->recv(empty, zmq::recv_flags::none);
 
   zmq::message_t payload;
-  internal_router_socket_->recv(payload, zmq::recv_flags::none);
+  // (void) cast used to suppress [[nodiscard]] warning; blocking recv expected here
+  (void)internal_router_socket_->recv(payload, zmq::recv_flags::none);
 
   std::string cmd_str(static_cast<char *>(payload.data()), payload.size());
   std::cout << "[CommandIngressNode] Processed aggregate command: " << cmd_str
