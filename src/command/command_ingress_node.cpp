@@ -1,7 +1,7 @@
 #include "command/command_ingress_node.hpp"
 #include "data/oro_protocol.hpp"
 #include "data/topic_registry.hpp"
-#include "radxa_services.hpp"
+#include "radxa_drivers/radxa_services.hpp"
 #include <iostream>
 #include <nlohmann/json.hpp>
 
@@ -10,7 +10,8 @@ using namespace oro;
 
 CommandIngressNode::CommandIngressNode(zmq::context_t &context,
                                        const std::string &cloud_endpoint,
-                                       const std::string &mcu_cmd_endpoint)
+                                       const std::string &mcu_cmd_endpoint,
+                                       const std::string &status_endpoint)
     : context_(context), mcu_cmd_endpoint_(mcu_cmd_endpoint) {
 
   internal_router_socket_ =
@@ -28,6 +29,10 @@ CommandIngressNode::CommandIngressNode(zmq::context_t &context,
   cmd_exec_pull_socket_ =
       std::make_unique<zmq::socket_t>(context_, zmq::socket_type::pull);
   cmd_exec_pull_socket_->connect("ipc:///tmp/oro_cmd_result.ipc");
+
+  status_pub_socket_ =
+      std::make_unique<zmq::socket_t>(context_, zmq::socket_type::pub);
+  status_pub_socket_->connect(status_endpoint);
 
   cloud_thread_ = std::make_unique<CloudReceiver>(context_, cloud_endpoint,
                                                   internal_endpoint_);
@@ -100,10 +105,82 @@ void CommandIngressNode::spin_once() {
       if (!desc) {
         final_mcu_response = "{\"status\":\"error\",\"message\":\"unsupported_topic\"}";
       } else if (desc->sensor_id == -1 && desc->source == TopicSource::SYSTEM) {
-        // ── Host-Side Services (JSON Native) ──────────────────────────────────
-        std::cout << "[CommandIngressNode] Routing JSON to Radxa Service: " << topic_str << std::endl;
-        final_mcu_response = RadxaServices::process_command(j);
-        
+        // Determine if we should route via CommandExecutor (UCES) to enable DB logging
+        int signal_id = -1;
+        std::string signal_type;
+        json payload_obj = {{"value", value}};
+
+        if (topic_str == "/commands/treat/dispense") {
+          signal_id = 85;
+          signal_type = "treat_dispense_command_event";
+          payload_obj["treat_quantity"] = value;
+        } else if (topic_str == "/commands/photo_capture") {
+          signal_id = 91;
+          signal_type = "photo_capture_command_event";
+        } else if (topic_str == "/commands/live_session/start") {
+          signal_id = 88;
+          signal_type = "live_session_start_event";
+        } else if (topic_str == "/commands/live_session/end") {
+          signal_id = 133;
+          signal_type = "live_session_end_event";
+        } else if (topic_str == "/commands/lid/1") {
+          signal_id = 64;
+          signal_type = "lid_actuation_command";
+          payload_obj["lid_id"] = 1;
+          payload_obj["action"] = static_cast<int>(value);
+        } else if (topic_str == "/commands/lid/2") {
+          signal_id = 64;
+          signal_type = "lid_actuation_command";
+          payload_obj["lid_id"] = 2;
+          payload_obj["action"] = static_cast<int>(value);
+        } else if (topic_str == "/commands/settings/apply") {
+          signal_id = 98;
+          signal_type = "settings_apply_success_status";
+          payload_obj["settings_profile_id"] = "default_profile_v1";
+        }
+
+        if (signal_id != -1) {
+          std::cout << "[CommandIngressNode] Routing " << topic_str << " via CommandExecutor (UCES)..." << std::endl;
+          
+          // Construct UCES-style JSON for CommandExecutor
+          // The command_id is prefixed with the Signal ID (e.g., CMD_88_...) to satisfy
+          // the requirement of having the Signal ID as a primary identifier in logs.
+          json uces_cmd;
+          uces_cmd["header"] = {
+              {"signal_id", signal_id},
+              {"signal_type", signal_type},
+              {"command_id", "CMD_" + std::to_string(signal_id) + "_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count())},
+              {"issued_by", "cloud_ingress"},
+              {"event_time", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()}
+          };
+          uces_cmd["payload"] = payload_obj;
+          
+          std::string uces_cmd_str = uces_cmd.dump();
+          zmq::message_t push_msg(uces_cmd_str.data(), uces_cmd_str.size());
+          cmd_exec_push_socket_->send(push_msg, zmq::send_flags::none);
+
+          zmq::message_t result_msg;
+          if (cmd_exec_pull_socket_->recv(result_msg, zmq::recv_flags::none)) {
+            final_mcu_response = std::string(static_cast<char *>(result_msg.data()), result_msg.size());
+            std::cout << "[CommandIngressNode] CommandExecutor Result: " << final_mcu_response << std::endl;
+            
+            // #98 settings_apply_success_status - Publish result for HealthMonitor
+            if (topic_str == "/commands/settings/apply") {
+              zmq::message_t topic_msg("/status/settings/apply", 23);
+              zmq::message_t status_msg(final_mcu_response.size());
+              std::memcpy(status_msg.data(), final_mcu_response.data(), final_mcu_response.size());
+              
+              status_pub_socket_->send(topic_msg, zmq::send_flags::sndmore);
+              status_pub_socket_->send(status_msg, zmq::send_flags::none);
+            }
+          } else {
+            final_mcu_response = "{\"status\":\"timeout\",\"message\":\"command_executor_timeout\"}";
+          }
+        } else {
+          // ── Host-Side Services (JSON Native) ──────────────────────────────────
+          std::cout << "[CommandIngressNode] Routing JSON to Radxa Service: " << topic_str << std::endl;
+          final_mcu_response = RadxaServices::process_command(j);
+        }
       } else if (desc->sensor_id != -1 && (topic_str.find("/commands/") == 0 || desc->topic_id == TID_CMD_CAMERA_ROTATION)) {
         // ── MCU-Bound Commands (Binary Protocol) ───────────────────────────────
         OroPacket pkt{};

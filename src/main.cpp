@@ -1,6 +1,6 @@
 #include "command/command_ingress_node.hpp"
 #include "data/mcu_serial_reader_node.hpp"
-#include "radxa_drivers_node.hpp"
+#include "radxa_drivers/radxa_drivers_node.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -34,7 +34,7 @@ int main() {
   const std::string MCU_CMD_ENDPOINT = "ipc:///tmp/oro_mcu_cmd.ipc";
 
   // 2. Initialize Nodes
-  CommandIngressNode command_node(context, CLOUD_ENDPOINT, MCU_CMD_ENDPOINT);
+  CommandIngressNode command_node(context, CLOUD_ENDPOINT, MCU_CMD_ENDPOINT, STATUS_PUB_ENDPOINT);
   oro::McuSerialReaderNode mcu_node(context, SENSOR_PUB_ENDPOINT,
                                     SYSTEM_PUB_ENDPOINT, STATUS_PUB_ENDPOINT,
                                     MCU_CMD_ENDPOINT);

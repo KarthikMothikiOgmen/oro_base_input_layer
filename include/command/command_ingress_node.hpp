@@ -10,7 +10,8 @@
 class CommandIngressNode {
 public:
   CommandIngressNode(zmq::context_t &context, const std::string &cloud_endpoint,
-                     const std::string &mcu_cmd_endpoint);
+                     const std::string &mcu_cmd_endpoint,
+                     const std::string &status_endpoint);
   ~CommandIngressNode();
 
   void start();
@@ -33,6 +34,8 @@ private:
 
   std::unique_ptr<zmq::socket_t> cmd_exec_push_socket_;
   std::unique_ptr<zmq::socket_t> cmd_exec_pull_socket_;
+
+  std::unique_ptr<zmq::socket_t> status_pub_socket_;
 
   std::unique_ptr<CloudReceiver> cloud_thread_;
 };

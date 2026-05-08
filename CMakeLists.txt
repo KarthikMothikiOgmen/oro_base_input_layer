@@ -13,7 +13,7 @@ pkg_check_modules(ZMQ REQUIRED libzmq)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../oro_base_hardware_layer/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../oro_base_hardware_layer/radxa_drivers/include
     ${ZMQ_INCLUDE_DIRS}
 )
 

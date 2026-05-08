@@ -514,7 +514,7 @@ CMakeFiles/input_layer_node.dir/src/command/command_ingress_node.cpp.o: /home/og
   /usr/include/c++/11/cstddef \
   /home/ogmen/oro_base/oro_base_input_layer/include/data/topic_registry.hpp \
   /home/ogmen/oro_base/oro_base_input_layer/include/data/oro_protocol.hpp \
-  /home/ogmen/oro_base/oro_base_hardware_layer/include/radxa_services.hpp \
+  /home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/include/radxa_drivers/radxa_services.hpp \
   /usr/include/nlohmann/json.hpp \
   /usr/include/c++/11/iterator \
   /usr/include/c++/11/bits/stream_iterator.h \
@@ -1494,7 +1494,7 @@ CMakeFiles/input_layer_node.dir/src/main.cpp.o: /home/ogmen/oro_base/oro_base_in
   /usr/include/c++/11/bits/stl_tree.h \
   /usr/include/c++/11/bits/stl_map.h \
   /usr/include/c++/11/bits/stl_multimap.h \
-  /home/ogmen/oro_base/oro_base_hardware_layer/include/radxa_drivers_node.hpp \
+  /home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/include/radxa_drivers/radxa_drivers_node.hpp \
   /usr/include/c++/11/random \
   /usr/include/c++/11/cmath \
   /usr/include/math.h \
@@ -1590,7 +1590,7 @@ CMakeFiles/input_layer_node.dir/src/main.cpp.o: /home/ogmen/oro_base/oro_base_in
 
 /usr/include/c++/11/random:
 
-/home/ogmen/oro_base/oro_base_hardware_layer/include/radxa_drivers_node.hpp:
+/home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/include/radxa_drivers/radxa_drivers_node.hpp:
 
 /usr/include/x86_64-linux-gnu/bits/termios-misc.h:
 
@@ -1778,7 +1778,7 @@ CMakeFiles/input_layer_node.dir/src/main.cpp.o: /home/ogmen/oro_base/oro_base_in
 
 /usr/include/nlohmann/json.hpp:
 
-/home/ogmen/oro_base/oro_base_hardware_layer/include/radxa_services.hpp:
+/home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/include/radxa_drivers/radxa_services.hpp:
 
 /usr/include/nlohmann/detail/meta/is_sax.hpp:
 

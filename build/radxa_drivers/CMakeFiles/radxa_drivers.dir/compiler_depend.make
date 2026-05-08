@@ -3,7 +3,7 @@
 
 radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_drivers_node.cpp.o: /home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/src/radxa_drivers_node.cpp \
   /usr/include/stdc-predef.h \
-  /home/ogmen/oro_base/oro_base_hardware_layer/include/radxa_drivers_node.hpp \
+  /home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/include/radxa_drivers/radxa_drivers_node.hpp \
   /usr/include/zmq.hpp \
   /usr/include/zmq.h \
   /usr/include/errno.h \
@@ -290,7 +290,7 @@ radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_drivers_node.cpp.o: /home/o
 
 radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_services.cpp.o: /home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/src/radxa_services.cpp \
   /usr/include/stdc-predef.h \
-  /home/ogmen/oro_base/oro_base_hardware_layer/include/radxa_services.hpp \
+  /home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/include/radxa_drivers/radxa_services.hpp \
   /usr/include/c++/11/string \
   /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
   /usr/include/x86_64-linux-gnu/c++/11/bits/os_defines.h \
@@ -790,7 +790,7 @@ radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_services.cpp.o: /home/ogmen
 
 /usr/include/nlohmann/json.hpp:
 
-/home/ogmen/oro_base/oro_base_hardware_layer/include/radxa_services.hpp:
+/home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/include/radxa_drivers/radxa_services.hpp:
 
 /home/ogmen/oro_base/oro_base_input_layer/include/data/oro_protocol.hpp:
 
@@ -970,7 +970,9 @@ radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_services.cpp.o: /home/ogmen
 
 /usr/include/x86_64-linux-gnu/bits/timesize.h:
 
-/home/ogmen/oro_base/oro_base_hardware_layer/include/radxa_drivers_node.hpp:
+/usr/include/x86_64-linux-gnu/bits/types/sigset_t.h:
+
+/usr/include/c++/11/bits/concept_check.h:
 
 /usr/include/c++/11/bits/stl_tempbuf.h:
 
@@ -1009,6 +1011,12 @@ radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_services.cpp.o: /home/ogmen
 /usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/error_t.h:
+
+/home/ogmen/oro_base/oro_base_hardware_layer/radxa_drivers/include/radxa_drivers/radxa_drivers_node.hpp:
+
+/usr/include/c++/11/vector:
+
+/usr/include/c++/11/bits/align.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/stack_t.h:
 
@@ -1068,6 +1076,10 @@ radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_services.cpp.o: /home/ogmen
 
 /usr/include/x86_64-linux-gnu/bits/wchar.h:
 
+/usr/include/x86_64-linux-gnu/c++/11/bits/cpu_defines.h:
+
+/usr/include/zmq.h:
+
 /usr/include/c++/11/bits/std_thread.h:
 
 /usr/include/c++/11/bits/stl_iterator_base_funcs.h:
@@ -1088,13 +1100,21 @@ radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_services.cpp.o: /home/ogmen
 
 /usr/include/c++/11/bits/locale_facets_nonio.tcc:
 
-/usr/include/x86_64-linux-gnu/c++/11/bits/cpu_defines.h:
+/usr/include/c++/11/bits/algorithmfwd.h:
 
-/usr/include/zmq.h:
+/usr/include/c++/11/pstl/execution_defs.h:
 
-/usr/include/x86_64-linux-gnu/bits/types/sigset_t.h:
+/usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
 
-/usr/include/c++/11/bits/concept_check.h:
+/usr/include/x86_64-linux-gnu/bits/wctype-wchar.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/FILE.h:
+
+/usr/include/x86_64-linux-gnu/bits/timex.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdio_lim.h:
+
+/usr/include/errno.h:
 
 /usr/include/nlohmann/detail/json_ref.hpp:
 
@@ -1108,27 +1128,11 @@ radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_services.cpp.o: /home/ogmen
 
 /usr/include/x86_64-linux-gnu/bits/long-double.h:
 
-/usr/include/c++/11/bits/algorithmfwd.h:
-
-/usr/include/c++/11/pstl/execution_defs.h:
-
-/usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
-
-/usr/include/x86_64-linux-gnu/bits/wctype-wchar.h:
-
 /usr/include/c++/11/ext/numeric_traits.h:
 
 /usr/include/c++/11/bits/atomic_base.h:
 
-/usr/include/errno.h:
-
 /usr/include/features.h:
-
-/usr/include/x86_64-linux-gnu/bits/types/FILE.h:
-
-/usr/include/x86_64-linux-gnu/bits/timex.h:
-
-/usr/include/x86_64-linux-gnu/bits/stdio_lim.h:
 
 /usr/include/c++/11/bits/stl_heap.h:
 
@@ -1223,10 +1227,6 @@ radxa_drivers/CMakeFiles/radxa_drivers.dir/src/radxa_services.cpp.o: /home/ogmen
 /usr/include/stdint.h:
 
 /usr/include/c++/11/bits/erase_if.h:
-
-/usr/include/c++/11/vector:
-
-/usr/include/c++/11/bits/align.h:
 
 /usr/include/c++/11/bits/stl_uninitialized.h:
 
