@@ -35,3 +35,7 @@ target_link_libraries(input_layer_node
     radxa_drivers
 )
 target_link_directories(input_layer_node PRIVATE ${ZMQ_LIBRARY_DIRS})
+
+install(TARGETS input_layer_node
+    RUNTIME DESTINATION bin
+)
