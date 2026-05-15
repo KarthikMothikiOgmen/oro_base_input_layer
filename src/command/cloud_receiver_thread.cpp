@@ -37,6 +37,9 @@ void CloudReceiver::run() {
     // REQ socket to send parsed commands to the main CommandIngressNode via
     // inproc and wait for the synchronous MCU result.
     zmq::socket_t req_socket(context_, zmq::socket_type::req);
+    // Set a 10 second timeout to prevent indefinite blocking on MCU failures
+    req_socket.set(zmq::sockopt::rcvtimeo, 10000);
+    req_socket.set(zmq::sockopt::sndtimeo, 10000);
     req_socket.connect(internal_endpoint_);
 
     std::cout << "[CloudReceiver] Listening on " << cloud_endpoint_
@@ -54,20 +57,30 @@ void CloudReceiver::run() {
         // Forward to main input layer via inproc REQ
         zmq::message_t internal_msg(req_str.size());
         memcpy(internal_msg.data(), req_str.data(), req_str.size());
-        req_socket.send(internal_msg, zmq::send_flags::none);
+        
+        try {
+          req_socket.send(internal_msg, zmq::send_flags::none);
 
-        // Block until CommandIngressNode finishes MCU cycle and replies
-        zmq::message_t mcu_result;
-        auto mcu_res = req_socket.recv(mcu_result, zmq::recv_flags::none);
+          // Block until CommandIngressNode finishes MCU cycle and replies
+          zmq::message_t mcu_result;
+          auto mcu_res = req_socket.recv(mcu_result, zmq::recv_flags::none);
 
-        if (mcu_res) {
-            // Forward the actual MCU result (Success/Timeout) back to the client
-            rep_socket.send(mcu_result, zmq::send_flags::none);
-        } else {
-            std::string err_rep = "{\"status\":\"error\",\"message\":\"internal_timeout\"}";
-            zmq::message_t err_msg(err_rep.size());
-            memcpy(err_msg.data(), err_rep.data(), err_rep.size());
-            rep_socket.send(err_msg, zmq::send_flags::none);
+          if (mcu_res) {
+              // Forward the actual MCU result (Success/Timeout) back to the client
+              rep_socket.send(mcu_result, zmq::send_flags::none);
+          } else {
+              std::string err_rep = "{\"status\":\"error\",\"message\":\"internal_timeout\"}";
+              zmq::message_t err_msg(err_rep.size());
+              memcpy(err_msg.data(), err_rep.data(), err_rep.size());
+              rep_socket.send(err_msg, zmq::send_flags::none);
+          }
+        } catch (const zmq::error_t &inner_e) {
+          // Handle timeouts or other socket errors gracefully
+          std::cerr << "[CloudReceiver] Request/Reply Error: " << inner_e.what() << std::endl;
+          std::string err_rep = "{\"status\":\"error\",\"message\":\"command_processing_error\"}";
+          zmq::message_t err_msg(err_rep.size());
+          memcpy(err_msg.data(), err_rep.data(), err_rep.size());
+          rep_socket.send(err_msg, zmq::send_flags::none);
         }
       }
     }
