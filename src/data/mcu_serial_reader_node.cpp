@@ -107,21 +107,11 @@ void McuSerialReaderNode::serial_io_thread_func() {
   uint8_t read_buf[128];
 
   while (running_.load(std::memory_order_relaxed)) {
-    // ── 1. Read from UART → push into rx_buffer_ directly ─────────────
+    // ── 1. Read from UART → push into rx_queue_ (SPSC) ─────────────
     if (serial_port_.is_open()) {
       ssize_t n = serial_port_.read(read_buf, sizeof(read_buf));
       if (n > 0) {
-        // Copy into our internal assembly buffer
-        const size_t space = rx_buffer_.size() - rx_head_;
-        const size_t to_copy = std::min(static_cast<size_t>(n), space);
-        std::memcpy(rx_buffer_.data() + rx_head_, read_buf, to_copy);
-        rx_head_ += to_copy;
-
-        // ── 2. Decode all complete packets in this thread ─────────────
-        OroPacket pkt;
-        while (try_decode_packet(pkt)) {
-          dispatch_packet(pkt);
-        }
+        rx_queue_.push_bulk(read_buf, static_cast<size_t>(n));
       }
     }
 
@@ -253,10 +243,22 @@ void McuSerialReaderNode::spin_once() {
   const uint64_t current_ms = now_ms();
 
   // ── 1. Publish host-generated system topics ─────────────────────────
-  // Note: These use system_pub_, which is NOT used by the Serial thread.
   publish_system_data(current_ms);
 
-  // ── 2. Check periodic fallback publishes ────────────────────────────
+  // ── 2. Drain rx_queue and decode packets ────────────────────────────
+  // All ZMQ sends now happen in the main thread to ensure thread-safety.
+  const size_t space = rx_buffer_.size() - rx_head_;
+  if (space > 0) {
+    size_t n = rx_queue_.pop_bulk(rx_buffer_.data() + rx_head_, space);
+    rx_head_ += n;
+  }
+
+  OroPacket pkt;
+  while (try_decode_packet(pkt)) {
+    dispatch_packet(pkt);
+  }
+
+  // ── 3. Check periodic fallback publishes ────────────────────────────
   // We keep this in the main thread to avoid complex locking on the filter
   // state.
   filter_.check_periodic(current_ms, [this, current_ms](uint8_t topic_id) {
@@ -285,7 +287,7 @@ void McuSerialReaderNode::spin_once() {
     }
   });
 
-  // ── 3. Check Hardware Heartbeat (Non-Blocking) ───────────────────────
+  // ── 4. Check Hardware Heartbeat (Non-Blocking) ───────────────────────
   // We flag failure if:
   // 1. Packets stop arriving (silent)
   // 2. Sequence number stops incrementing (stagnant)
