@@ -3,8 +3,10 @@
 
 #include "command/cloud_receiver_thread.hpp"
 
+#include <atomic>
 #include <memory>
 #include <string>
+#include <thread>
 #include <zmq.hpp>
 
 class CommandIngressNode {
@@ -38,6 +40,11 @@ private:
   std::unique_ptr<zmq::socket_t> status_pub_socket_;
 
   std::unique_ptr<CloudReceiver> cloud_thread_;
+  
+  // ── Threaded Worker ──────────────────────────────────────────────────
+  void command_worker_thread_func();
+  std::unique_ptr<std::thread> worker_thread_;
+  std::atomic<bool> running_{false};
 };
 
 #endif // COMMAND_INGRESS_NODE_HPP

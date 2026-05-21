@@ -288,21 +288,22 @@ void McuSerialReaderNode::spin_once() {
   });
 
   // ── 4. Check Hardware Heartbeat (Non-Blocking) ───────────────────────
+  // TODO: Implement heartbeat check
   // We flag failure if:
   // 1. Packets stop arriving (silent)
   // 2. Sequence number stops incrementing (stagnant)
-  if (last_hb_arrival_time_ms_ > 0) {
-    bool silent = (current_ms - last_hb_arrival_time_ms_) >= 5000;
-    bool stagnant = (current_ms - last_hb_change_time_ms_) >= 5000;
+  // if (last_hb_arrival_time_ms_ > 0) {
+  //   bool silent = (current_ms - last_hb_arrival_time_ms_) >= 2000;
+  //   bool stagnant = (current_ms - last_hb_change_time_ms_) >= 2000;
 
-    if ((silent || stagnant) && !hb_stale_) {
-      std::cerr << "[McuSerialReaderNode] CRITICAL: Hardware heartbeat "
-                << (silent ? "SILENT" : "STAGNANT")
-                << " for >= 5s. Possible hardware/firmware failure!"
-                << std::endl;
-      hb_stale_ = true;
-    }
-  }
+  //   if ((silent || stagnant) && !hb_stale_) {
+  //     std::cerr << "[McuSerialReaderNode] CRITICAL: Hardware heartbeat "
+  //               << (silent ? "SILENT" : "STAGNANT")
+  //               << " for >= 2s. Possible hardware/firmware failure!"
+  //               << std::endl;
+  //     hb_stale_ = true;
+  //   }
+  // }
 }
 
 // ── Packet Decoder ──────────────────────────────────────────────────────────

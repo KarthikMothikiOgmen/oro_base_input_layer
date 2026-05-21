@@ -41,193 +41,184 @@ CommandIngressNode::CommandIngressNode(zmq::context_t &context,
 CommandIngressNode::~CommandIngressNode() { stop(); }
 
 void CommandIngressNode::start() {
+  if (running_.load())
+    return;
+
   std::cout
       << "[CommandIngressNode] Starting specialized receiver threads...\n";
+  
+  running_ = true;
   cloud_thread_->start();
+  
+  worker_thread_ = std::make_unique<std::thread>(&CommandIngressNode::command_worker_thread_func, this);
 }
 
 void CommandIngressNode::stop() {
+  if (!running_.load())
+    return;
+
   std::cout << "[CommandIngressNode] Stopping receiver threads...\n";
+  
+  running_ = false;
   cloud_thread_->stop();
+
+  if (worker_thread_ && worker_thread_->joinable()) {
+    worker_thread_->join();
+  }
 }
 
 void CommandIngressNode::spin_once() {
-  // 1. Check for internal command requests (ROUTER socket)
-  // ROUTER receives: [Identity] [Empty] [Payload]
-  zmq::message_t identity;
-  auto res_id =
-      internal_router_socket_->recv(identity, zmq::recv_flags::dontwait);
-  if (!res_id)
-    return;
+  // Now a no-op as all processing happens in command_worker_thread_func
+}
 
-  zmq::message_t empty;
+void CommandIngressNode::command_worker_thread_func() {
+  std::cout << "[CommandWorkerThread] Running" << std::endl;
+
+  while (running_.load(std::memory_order_relaxed)) {
+    // 1. Check for internal command requests (ROUTER socket)
+    // ROUTER receives: [Identity] [Empty] [Payload]
+    zmq::message_t identity;
+    auto res_id =
+        internal_router_socket_->recv(identity, zmq::recv_flags::dontwait);
+    
+    if (!res_id) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      continue;
+    }
+
+    zmq::message_t empty;
   // (void) cast used to suppress [[nodiscard]] warning; blocking recv expected here
-  (void)internal_router_socket_->recv(empty, zmq::recv_flags::none);
+    (void)internal_router_socket_->recv(empty, zmq::recv_flags::none);
 
-  zmq::message_t payload;
+    zmq::message_t payload;
   // (void) cast used to suppress [[nodiscard]] warning; blocking recv expected here
-  (void)internal_router_socket_->recv(payload, zmq::recv_flags::none);
+    (void)internal_router_socket_->recv(payload, zmq::recv_flags::none);
 
-  std::string cmd_str(static_cast<char *>(payload.data()), payload.size());
-  std::cout << "[CommandIngressNode] Processed aggregate command: " << cmd_str
-            << std::endl;
+    std::string cmd_str(static_cast<char *>(payload.data()), payload.size());
+    std::cout << "[CommandWorkerThread] Processed aggregate command: " << cmd_str
+              << std::endl;
 
-  std::string final_mcu_response =
-      "{\"status\":\"error\",\"message\":\"unsupported_topic\"}";
+    std::string final_mcu_response =
+        "{\"status\":\"error\",\"message\":\"unsupported_topic\"}";
 
-  try {
-    json j = json::parse(cmd_str);
-    if (j.contains("header") || j.contains("signal_id")) {
-      std::cout << "[CommandIngressNode] Routing UCES Command via CommandExecutor..." << std::endl;
-      zmq::message_t push_msg(cmd_str.data(), cmd_str.size());
-      cmd_exec_push_socket_->send(push_msg, zmq::send_flags::none);
+    try {
+      json j = json::parse(cmd_str);
+      if (j.contains("header") || j.contains("signal_id")) {
+        // ... (UCES logic preserved)
+        zmq::message_t push_msg(cmd_str.data(), cmd_str.size());
+        cmd_exec_push_socket_->send(push_msg, zmq::send_flags::none);
 
-      zmq::message_t result_msg;
-      if (cmd_exec_pull_socket_->recv(result_msg, zmq::recv_flags::none)) {
-        final_mcu_response = std::string(static_cast<char *>(result_msg.data()), result_msg.size());
-        std::cout << "[CommandIngressNode] CommandExecutor Result: " << final_mcu_response << std::endl;
+        zmq::message_t result_msg;
+        if (cmd_exec_pull_socket_->recv(result_msg, zmq::recv_flags::none)) {
+          final_mcu_response = std::string(static_cast<char *>(result_msg.data()), result_msg.size());
+        } else {
+          final_mcu_response = "{\"status\":\"timeout\",\"message\":\"command_executor_timeout\"}";
+        }
       } else {
-        final_mcu_response = "{\"status\":\"timeout\",\"message\":\"command_executor_timeout\"}";
-      }
-    } else {
-      std::string topic_str = j.value("topic", "");
-      float value = j.value("value", 0.0f);
+        std::string topic_str = j.value("topic", "");
+        float value = j.value("value", 0.0f);
 
-      // ── Unified Topic Routing ───────────────────────────────────────────────
-      const TopicDescriptor *desc = nullptr;
-      for (const auto &t : TOPIC_REGISTRY) {
-        if (t.zmq_topic && std::string(t.zmq_topic) == topic_str) {
-          desc = &t;
-          break;
-        }
-      }
-
-      if (!desc) {
-        final_mcu_response = "{\"status\":\"error\",\"message\":\"unsupported_topic\"}";
-      } else if (desc->sensor_id == -1 && desc->source == TopicSource::SYSTEM) {
-        // Determine if we should route via CommandExecutor (UCES) to enable DB logging
-        int signal_id = -1;
-        std::string signal_type;
-        json payload_obj = {{"value", value}};
-
-        if (topic_str == "/commands/treat/dispense") {
-          signal_id = 85;
-          signal_type = "treat_dispense_command_event";
-          payload_obj["treat_quantity"] = value;
-        } else if (topic_str == "/commands/photo_capture") {
-          signal_id = 91;
-          signal_type = "photo_capture_command_event";
-        } else if (topic_str == "/commands/live_session/start") {
-          signal_id = 88;
-          signal_type = "live_session_start_event";
-        } else if (topic_str == "/commands/live_session/end") {
-          signal_id = 133;
-          signal_type = "live_session_end_event";
-        } else if (topic_str == "/commands/lid/1") {
-          signal_id = 64;
-          signal_type = "lid_actuation_command";
-          payload_obj["lid_id"] = 1;
-          payload_obj["action"] = static_cast<int>(value);
-        } else if (topic_str == "/commands/lid/2") {
-          signal_id = 64;
-          signal_type = "lid_actuation_command";
-          payload_obj["lid_id"] = 2;
-          payload_obj["action"] = static_cast<int>(value);
-        } else if (topic_str == "/commands/settings/apply") {
-          signal_id = 98;
-          signal_type = "settings_apply_success_status";
-          payload_obj["settings_profile_id"] = "default_profile_v1";
+        const TopicDescriptor *desc = nullptr;
+        for (const auto &t : TOPIC_REGISTRY) {
+          if (t.zmq_topic && std::string(t.zmq_topic) == topic_str) {
+            desc = &t;
+            break;
+          }
         }
 
-        if (signal_id != -1) {
-          std::cout << "[CommandIngressNode] Routing " << topic_str << " via CommandExecutor (UCES)..." << std::endl;
-          
-          // Construct UCES-style JSON for CommandExecutor
-          // The command_id is prefixed with the Signal ID (e.g., CMD_88_...) to satisfy
-          // the requirement of having the Signal ID as a primary identifier in logs.
-          json uces_cmd;
-          uces_cmd["header"] = {
-              {"signal_id", signal_id},
-              {"signal_type", signal_type},
-              {"command_id", "CMD_" + std::to_string(signal_id) + "_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count())},
-              {"issued_by", "cloud_ingress"},
-              {"event_time", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()}
-          };
-          uces_cmd["payload"] = payload_obj;
-          
-          std::string uces_cmd_str = uces_cmd.dump();
-          zmq::message_t push_msg(uces_cmd_str.data(), uces_cmd_str.size());
-          cmd_exec_push_socket_->send(push_msg, zmq::send_flags::none);
+        if (!desc) {
+          final_mcu_response = "{\"status\":\"error\",\"message\":\"unsupported_topic\"}";
+        } else if (desc->sensor_id == -1 && desc->source == TopicSource::SYSTEM) {
+          // ── UCES / Host Routing ───────────────────────────────────────────────
+          int signal_id = -1;
+          std::string signal_type;
+          json payload_obj = {{"value", value}};
 
-          zmq::message_t result_msg;
-          if (cmd_exec_pull_socket_->recv(result_msg, zmq::recv_flags::none)) {
-            final_mcu_response = std::string(static_cast<char *>(result_msg.data()), result_msg.size());
-            std::cout << "[CommandIngressNode] CommandExecutor Result: " << final_mcu_response << std::endl;
+          if (topic_str == "/commands/treat/dispense") {
+            signal_id = 85; signal_type = "treat_dispense_command_event"; payload_obj["treat_quantity"] = value;
+          } else if (topic_str == "/commands/photo_capture") {
+            signal_id = 91; signal_type = "photo_capture_command_event";
+          } else if (topic_str == "/commands/live_session/start") {
+            signal_id = 88; signal_type = "live_session_start_event";
+          } else if (topic_str == "/commands/live_session/end") {
+            signal_id = 133; signal_type = "live_session_end_event";
+          } else if (topic_str == "/commands/lid/1") {
+            signal_id = 64; signal_type = "lid_actuation_command"; payload_obj["lid_id"] = 1; payload_obj["action"] = static_cast<int>(value);
+          } else if (topic_str == "/commands/lid/2") {
+            signal_id = 64; signal_type = "lid_actuation_command"; payload_obj["lid_id"] = 2; payload_obj["action"] = static_cast<int>(value);
+          } else if (topic_str == "/commands/settings/apply") {
+            signal_id = 98; signal_type = "settings_apply_success_status"; payload_obj["settings_profile_id"] = "default_profile_v1";
+          }
+
+          if (signal_id != -1) {
+            json uces_cmd;
+            uces_cmd["header"] = {
+                {"signal_id", signal_id},
+                {"signal_type", signal_type},
+                {"command_id", "CMD_" + std::to_string(signal_id) + "_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count())},
+                {"issued_by", "cloud_ingress"},
+                {"event_time", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()}
+            };
+            uces_cmd["payload"] = payload_obj;
             
-            // #98 settings_apply_success_status - Publish result for HealthMonitor
-            if (topic_str == "/commands/settings/apply") {
-              zmq::message_t topic_msg("/status/settings/apply", 23);
-              zmq::message_t status_msg(final_mcu_response.size());
-              std::memcpy(status_msg.data(), final_mcu_response.data(), final_mcu_response.size());
-              
-              status_pub_socket_->send(topic_msg, zmq::send_flags::sndmore);
-              status_pub_socket_->send(status_msg, zmq::send_flags::none);
+            std::string uces_cmd_str = uces_cmd.dump();
+            zmq::message_t push_msg(uces_cmd_str.data(), uces_cmd_str.size());
+            cmd_exec_push_socket_->send(push_msg, zmq::send_flags::none);
+
+            zmq::message_t result_msg;
+            if (cmd_exec_pull_socket_->recv(result_msg, zmq::recv_flags::none)) {
+              final_mcu_response = std::string(static_cast<char *>(result_msg.data()), result_msg.size());
+              if (topic_str == "/commands/settings/apply") {
+                zmq::message_t topic_msg("/status/settings/apply", 23);
+                zmq::message_t status_msg(final_mcu_response.size());
+                std::memcpy(status_msg.data(), final_mcu_response.data(), final_mcu_response.size());
+                status_pub_socket_->send(topic_msg, zmq::send_flags::sndmore);
+                status_pub_socket_->send(status_msg, zmq::send_flags::none);
+              }
+            } else {
+              final_mcu_response = "{\"status\":\"timeout\",\"message\":\"command_executor_timeout\"}";
             }
           } else {
-            final_mcu_response = "{\"status\":\"timeout\",\"message\":\"command_executor_timeout\"}";
+            final_mcu_response = RadxaServices::process_command(j);
           }
-        } else {
-          // ── Host-Side Services (JSON Native) ──────────────────────────────────
-          std::cout << "[CommandIngressNode] Routing JSON to Radxa Service: " << topic_str << std::endl;
-          final_mcu_response = RadxaServices::process_command(j);
-        }
-      } else if (desc->sensor_id != -1 && (topic_str.find("/commands/") == 0 || desc->topic_id == TID_CMD_CAMERA_ROTATION)) {
-        // ── MCU-Bound Commands (Binary Protocol) ───────────────────────────────
-        OroPacket pkt{};
-        pkt.start = START_BYTE;
-        pkt.msg_type = PACK_MSG_TYPE(PRIO_HIGH, MSG_COMMAND);
-        pkt.id_seq = PACK_ID_SEQ(cmd_seq_, static_cast<uint8_t>(desc->sensor_id));
-        cmd_seq_ = (cmd_seq_ + 1) & 0x0F;
+        } else if (desc->sensor_id != -1 && (topic_str.find("/commands/") == 0 || desc->topic_id == TID_CMD_CAMERA_ROTATION)) {
+          // ── MCU-Bound Commands ───────────────────────────────────────────────
+          OroPacket pkt{};
+          pkt.start = START_BYTE;
+          pkt.msg_type = PACK_MSG_TYPE(PRIO_HIGH, MSG_COMMAND);
+          pkt.id_seq = PACK_ID_SEQ(cmd_seq_, static_cast<uint8_t>(desc->sensor_id));
+          cmd_seq_ = (cmd_seq_ + 1) & 0x0F;
 
-        // Pack float as fixed-point for specific actuators, or raw int for others
-        if (desc->topic_id == TID_CMD_CAMERA_ROTATION || 
-            desc->topic_id == TID_CMD_CAMERA_SERVO ||
-            desc->topic_id == TID_CMD_DISPLAY || 
-            desc->topic_id == TID_CMD_LED) {
-          pack_value_i32(pkt.value, static_cast<int32_t>(value * 100.0f));
-        } else {
-          pack_value_i32(pkt.value, static_cast<int32_t>(value));
-        }
-        pkt.crc = oro_crc8(&pkt.msg_type, 6);
+          if (desc->topic_id == TID_CMD_CAMERA_ROTATION || desc->topic_id == TID_CMD_CAMERA_SERVO ||
+              desc->topic_id == TID_CMD_DISPLAY || desc->topic_id == TID_CMD_LED) {
+            pack_value_i32(pkt.value, static_cast<int32_t>(value * 100.0f));
+          } else {
+            pack_value_i32(pkt.value, static_cast<int32_t>(value));
+          }
+          pkt.crc = oro_crc8(&pkt.msg_type, 6);
 
-        zmq::message_t mcu_msg(sizeof(OroPacket));
-        std::memcpy(mcu_msg.data(), &pkt, sizeof(OroPacket));
+          zmq::message_t mcu_msg(sizeof(OroPacket));
+          std::memcpy(mcu_msg.data(), &pkt, sizeof(OroPacket));
 
-        std::cout << "[CommandIngressNode] Dispatching " << topic_str << " to MCU..." << std::endl;
-        mcu_req_socket_->send(mcu_msg, zmq::send_flags::none);
-
-        std::cout << "[CommandIngressNode] Waiting for MCU ACK..." << std::endl;
-        
-        // Wait for result from McuSerialReaderNode
-        zmq::message_t mcu_response;
-        if (mcu_req_socket_->recv(mcu_response, zmq::recv_flags::none)) {
-          final_mcu_response = std::string(static_cast<char *>(mcu_response.data()), mcu_response.size());
-          std::cout << "[CommandIngressNode] Final MCU Result: " << final_mcu_response << std::endl;
-        } else {
-          final_mcu_response = "{\"status\":\"timeout\",\"message\":\"mcu_communication_failure\"}";
+          mcu_req_socket_->send(mcu_msg, zmq::send_flags::none);
+          
+          zmq::message_t mcu_response;
+          if (mcu_req_socket_->recv(mcu_response, zmq::recv_flags::none)) {
+            final_mcu_response = std::string(static_cast<char *>(mcu_response.data()), mcu_response.size());
+          } else {
+            final_mcu_response = "{\"status\":\"timeout\",\"message\":\"mcu_communication_failure\"}";
+          }
         }
       }
+    } catch (const json::parse_error &e) {
+      final_mcu_response = "{\"status\":\"error\",\"message\":\"json_parse_error\"}";
     }
-  } catch (const json::parse_error &e) {
-    final_mcu_response =
-        "{\"status\":\"error\",\"message\":\"json_parse_error\"}";
-  }
 
-  // 3. Reply back to the receiver thread: [Identity] [Empty] [Result]
-  internal_router_socket_->send(identity, zmq::send_flags::sndmore);
-  internal_router_socket_->send(zmq::message_t(0), zmq::send_flags::sndmore);
-  zmq::message_t res_msg(final_mcu_response.size());
-  std::memcpy(res_msg.data(), final_mcu_response.data(),
-              final_mcu_response.size());
-  internal_router_socket_->send(res_msg, zmq::send_flags::none);
+    // 3. Reply back to the receiver thread
+    internal_router_socket_->send(identity, zmq::send_flags::sndmore);
+    internal_router_socket_->send(zmq::message_t(0), zmq::send_flags::sndmore);
+    zmq::message_t res_msg(final_mcu_response.size());
+    std::memcpy(res_msg.data(), final_mcu_response.data(), final_mcu_response.size());
+    internal_router_socket_->send(res_msg, zmq::send_flags::none);
+  }
 }

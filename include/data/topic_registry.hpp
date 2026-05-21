@@ -116,8 +116,8 @@ static constexpr uint8_t TOPIC_COUNT = 46;
 static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     // ── Sensor Data (/sensors/...) ──────────────────────────────────────
     //  ID  Category               Policy                       Source               Topic                                      Thresh  Period    SID
-    {  0,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/food_weight/bowl_1",              1.0f,   5000,   SID_LOAD_LEFT    },
-    {  1,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/food_weight/bowl_2",              1.0f,   5000,   SID_LOAD_RIGHT   },
+    {  0,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/food_weight/bowl_1",              1.0f,   1000,   SID_LOAD_LEFT    },
+    {  1,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/food_weight/bowl_2",              1.0f,   1000,   SID_LOAD_RIGHT   },
     {  2,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/water_level/tank",                0.5f,   5000,   SID_WATER_LEVEL  },
     {  3,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/water_level/bowl",                0.0f,      0,   SID_WATER_BOWL   },
     {  4,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/environment/humidity",            0.5f,  10000,   SID_HUMIDITY     },
