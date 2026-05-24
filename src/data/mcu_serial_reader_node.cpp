@@ -7,6 +7,8 @@
 // ============================================================================
 
 #include "data/mcu_serial_reader_node.hpp"
+#include "radxa_drivers/gpio_sensor.hpp"
+#include "radxa_drivers/stepper_driver.hpp"
 
 #include <chrono>
 #include <cstring>
@@ -39,6 +41,39 @@ McuSerialReaderNode::McuSerialReaderNode(zmq::context_t &context,
             << "  - SENSORS: " << sensor_endpoint_ << "\n"
             << "  - SYSTEM:  " << system_endpoint_ << "\n"
             << "  - STATUS:  " << status_endpoint_ << std::endl;
+
+  // Initialize switches wired directly to Radxa's GPIO pins
+  try {
+    limit_switch1_ = std::make_unique<GPIOSensor>("/dev/gpiochip0", 36, GPIOSensor::Bias::PULL_UP, "switch1");
+    std::cout << "[McuSerialReaderNode] Initialized Limit Switch 1 (gpiochip0 pin 36)" << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << "[McuSerialReaderNode] ERROR: Failed to initialize Limit Switch 1: " << e.what() << std::endl;
+  }
+
+  try {
+    limit_switch2_ = std::make_unique<GPIOSensor>("/dev/gpiochip0", 39, GPIOSensor::Bias::PULL_UP, "switch2");
+    std::cout << "[McuSerialReaderNode] Initialized Limit Switch 2 (gpiochip0 pin 39)" << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << "[McuSerialReaderNode] ERROR: Failed to initialize Limit Switch 2: " << e.what() << std::endl;
+  }
+
+  try {
+    home_sensor_ = std::make_unique<GPIOSensor>("/dev/gpiochip1", 37, GPIOSensor::Bias::PULL_DOWN, "encoder");
+    std::cout << "[McuSerialReaderNode] Initialized Home Sensor (gpiochip1 pin 37)" << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << "[McuSerialReaderNode] ERROR: Failed to initialize Home Sensor: " << e.what() << std::endl;
+  }
+
+  try {
+    stepper_ = std::make_unique<Stepper>(TOTAL_STEPS, 
+                      "gpiochip1", 6, 
+                      "gpiochip1", 7, 
+                      "gpiochip1", 35, 
+                      "gpiochip0", 38);
+    std::cout << "[McuSerialReaderNode] Initialized Stepper Motor on Radxa" << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << "[McuSerialReaderNode] ERROR: Failed to initialize Stepper Motor: " << e.what() << std::endl;
+  }
 }
 
 McuSerialReaderNode::~McuSerialReaderNode() { stop(); }
@@ -71,8 +106,12 @@ void McuSerialReaderNode::start() {
   connectivity_thread_ = std::make_unique<std::thread>(
       &McuSerialReaderNode::connectivity_monitor_loop, this);
 
+  if (stepper_) {
+    stepper_thread_ = std::thread(&McuSerialReaderNode::stepper_thread_func, this);
+  }
+
   std::cout << "[McuSerialReaderNode] Started (serial I/O + command REP + "
-               "connectivity threads)"
+               "connectivity + stepper threads)"
             << std::endl;
 }
 
@@ -90,6 +129,12 @@ void McuSerialReaderNode::stop() {
   }
   if (connectivity_thread_ && connectivity_thread_->joinable()) {
     connectivity_thread_->join();
+  }
+
+  // Wake up and join stepper thread
+  stepper_cv_.notify_all();
+  if (stepper_thread_.joinable()) {
+    stepper_thread_.join();
   }
 
   serial_port_.close();
@@ -163,6 +208,19 @@ void McuSerialReaderNode::command_rep_thread_func() {
         std::memcpy(&pkt, request.data(), sizeof(OroPacket));
         uint8_t target_id = GET_ID(pkt.id_seq);
         uint8_t target_seq = GET_SEQ(pkt.id_seq);
+
+        if (target_id == PID_CAMERA_STEPPER) {
+          float angle = static_cast<float>(extract_value_i32(pkt.value)) / 100.0f;
+          std::cout << "[CommandREPThread] Intercepted Local Camera Stepper Command: Angle=" << angle << std::endl;
+          set_stepper_target_angle(angle);
+
+          // Return successful ACK response directly to CommandIngressNode
+          std::string reply_str = "{\"status\":\"success\",\"latency_ms\":0}";
+          zmq::message_t reply(reply_str.size());
+          std::memcpy(reply.data(), reply_str.data(), reply_str.size());
+          rep_socket.send(reply, zmq::send_flags::none);
+          continue;
+        }
 
         std::cout << "[CommandREPThread] Forwarding command to MCU: ID="
                   << (int)target_id << " SEQ=" << (int)target_seq << std::endl;
@@ -244,6 +302,10 @@ void McuSerialReaderNode::spin_once() {
 
   // ── 1. Publish host-generated system topics ─────────────────────────
   publish_system_data(current_ms);
+  publish_limit_switches(current_ms);
+  publish_home_sensor(current_ms);
+  publish_stepper_status(current_ms);
+  // publish_stepper_encoder(current_ms);
 
   // ── 2. Drain rx_queue and decode packets ────────────────────────────
   // All ZMQ sends now happen in the main thread to ensure thread-safety.
@@ -387,8 +449,15 @@ void McuSerialReaderNode::dispatch_packet(const OroPacket &pkt) {
       ++packets_invalid_id_;
       return;
     }
+    // Ignore limit switch and home sensor packets from MCU as they are now handled locally by Radxa GPIOs
+    if (id == SID_LIMIT_SW1 || id == SID_LIMIT_SW2 || id == SID_HOME_SENSOR) {
+      return;
+    }
     desc = lookup_by_sensor_id(id);
   } else if (msg_type == MSG_PERIPHERAL_STATE) {
+    if (id == PID_CAMERA_STEPPER) {
+      return;
+    }
     desc = lookup_by_peripheral_id(id);
   }
 
@@ -653,8 +722,369 @@ void McuSerialReaderNode::connectivity_monitor_loop() {
 uint64_t McuSerialReaderNode::now_ms() const {
   return static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now().time_since_epoch())
+          std::chrono::system_clock::now().time_since_epoch())
           .count());
+}
+
+void McuSerialReaderNode::publish_limit_switches(uint64_t current_ms) {
+  // Rate-limit GPIO reads to 10ms to conserve CPU resources while maintaining responsiveness
+  static uint64_t last_gpio_read_ms = 0;
+  if (current_ms - last_gpio_read_ms < 10) {
+    return;
+  }
+  last_gpio_read_ms = current_ms;
+
+  if (limit_switch1_) {
+    try {
+      int raw_val = limit_switch1_->read();
+      int val = raw_val ? 0 : 1; // Invert active-low signal (1 = Pressed/Active, 0 = Released/Inactive)
+      
+      // Instantaneous debounce logic with 50ms lockout
+      if (val != limit_switch1_debounced_val_) {
+        if (current_ms >= limit_switch1_lockout_until_ms_) {
+          limit_switch1_debounced_val_ = val;
+          limit_switch1_lockout_until_ms_ = current_ms + 50;
+          
+          const auto &desc = TOPIC_REGISTRY[TID_LIMIT_SWITCH_1];
+          MsgHeader hdr{};
+          hdr.sensor_id = desc.sensor_id >= 0 ? static_cast<uint8_t>(desc.sensor_id) : 0;
+          hdr.seq_num = limit_switch1_seq_;
+          hdr.timestamp_ms = current_ms;
+
+          if (filter_.should_publish(desc, 0.0f, static_cast<uint8_t>(limit_switch1_debounced_val_), 0, current_ms)) {
+            send_zmq_digital(desc, hdr, static_cast<uint8_t>(limit_switch1_debounced_val_));
+            limit_switch1_seq_ = (limit_switch1_seq_ + 1) & 0x0F;
+          }
+        }
+      }
+    } catch (const std::exception &e) {
+      // Avoid spamming error logs in the spin loop
+      static uint64_t last_err_ms = 0;
+      if (current_ms - last_err_ms >= 5000) {
+        std::cerr << "[McuSerialReaderNode] ERROR: Failed to read Limit Switch 1: " << e.what() << std::endl;
+        last_err_ms = current_ms;
+      }
+    }
+  }
+
+  if (limit_switch2_) {
+    try {
+      int raw_val = limit_switch2_->read();
+      int val = raw_val ? 0 : 1; // Invert active-low signal (1 = Pressed/Active, 0 = Released/Inactive)
+      
+      // Instantaneous debounce logic with 50ms lockout
+      if (val != limit_switch2_debounced_val_) {
+        if (current_ms >= limit_switch2_lockout_until_ms_) {
+          limit_switch2_debounced_val_ = val;
+          limit_switch2_lockout_until_ms_ = current_ms + 50;
+          
+          const auto &desc = TOPIC_REGISTRY[TID_LIMIT_SWITCH_2];
+          MsgHeader hdr{};
+          hdr.sensor_id = desc.sensor_id >= 0 ? static_cast<uint8_t>(desc.sensor_id) : 0;
+          hdr.seq_num = limit_switch2_seq_;
+          hdr.timestamp_ms = current_ms;
+
+          if (filter_.should_publish(desc, 0.0f, static_cast<uint8_t>(limit_switch2_debounced_val_), 0, current_ms)) {
+            send_zmq_digital(desc, hdr, static_cast<uint8_t>(limit_switch2_debounced_val_));
+            limit_switch2_seq_ = (limit_switch2_seq_ + 1) & 0x0F;
+          }
+        }
+      }
+    } catch (const std::exception &e) {
+      static uint64_t last_err_ms = 0;
+      if (current_ms - last_err_ms >= 5000) {
+        std::cerr << "[McuSerialReaderNode] ERROR: Failed to read Limit Switch 2: " << e.what() << std::endl;
+        last_err_ms = current_ms;
+      }
+    }
+  }
+}
+
+void McuSerialReaderNode::publish_home_sensor(uint64_t current_ms) {
+  // Rate-limit GPIO reads to 10ms to conserve CPU resources while maintaining responsiveness
+  static uint64_t last_gpio_read_ms = 0;
+  if (current_ms - last_gpio_read_ms < 10) {
+    return;
+  }
+  last_gpio_read_ms = current_ms;
+
+  if (home_sensor_) {
+    try {
+      int raw_val = home_sensor_->read();
+      int val = raw_val; // Raw value maps directly (0 = No obstacle/Inactive, 1 = Obstacle detected/Active)
+      
+      // Instantaneous debounce logic with 50ms lockout
+      if (val != home_sensor_debounced_val_) {
+        if (current_ms >= home_sensor_lockout_until_ms_) {
+          home_sensor_debounced_val_ = val;
+          home_sensor_lockout_until_ms_ = current_ms + 50;
+          
+          const auto &desc = TOPIC_REGISTRY[TID_HOME_SENSOR];
+          MsgHeader hdr{};
+          hdr.sensor_id = desc.sensor_id >= 0 ? static_cast<uint8_t>(desc.sensor_id) : 0;
+          hdr.seq_num = home_sensor_seq_;
+          hdr.timestamp_ms = current_ms;
+
+          if (filter_.should_publish(desc, 0.0f, static_cast<uint8_t>(home_sensor_debounced_val_), 0, current_ms)) {
+            send_zmq_digital(desc, hdr, static_cast<uint8_t>(home_sensor_debounced_val_));
+            home_sensor_seq_ = (home_sensor_seq_ + 1) & 0x0F;
+          }
+        }
+      }
+    } catch (const std::exception &e) {
+      // Avoid spamming error logs in the spin loop
+      static uint64_t last_err_ms = 0;
+      if (current_ms - last_err_ms >= 5000) {
+        std::cerr << "[McuSerialReaderNode] ERROR: Failed to read Home Sensor: " << e.what() << std::endl;
+        last_err_ms = current_ms;
+      }
+    }
+  }
+}
+
+bool McuSerialReaderNode::is_home_sensor_active() {
+  return home_sensor_ && (home_sensor_->read() == 1);
+}
+
+bool McuSerialReaderNode::is_left_limit_switch_pressed() {
+  return limit_switch1_ && (limit_switch1_->read() == 0);
+}
+
+bool McuSerialReaderNode::is_right_limit_switch_pressed() {
+  return limit_switch2_ && (limit_switch2_->read() == 0);
+}
+
+void McuSerialReaderNode::settle_home_edge(int move_dir) {
+  if (!stepper_) return;
+
+  int away_dir = (move_dir > 0) ? -1 : 1;
+  int max_steps = 42;
+  int steps = 0;
+
+  stepper_->setSpeed(5);
+
+  // Back away until the encoder releases
+  while (is_home_sensor_active() && steps < max_steps && running_.load()) {
+    stepper_->step(away_dir);
+    steps++;
+  }
+
+  // Approach slowly to the edge
+  steps = 0;
+  while (!is_home_sensor_active() && steps < max_steps && running_.load()) {
+    stepper_->step(move_dir);
+    steps++;
+  }
+
+  // If the sensor re-triggers, back off one step and approach again
+  if (is_home_sensor_active() && running_.load()) {
+    stepper_->step(away_dir);
+    steps = 0;
+    while (!is_home_sensor_active() && steps < max_steps && running_.load()) {
+      stepper_->step(move_dir);
+      steps++;
+    }
+  }
+
+  // Move slightly deeper into the slider width
+  if (is_home_sensor_active() && running_.load()) {
+    const int final_offset_steps = 42;
+    for (int i = 0; i < final_offset_steps && running_.load(); ++i) {
+      if (!is_home_sensor_active()) {
+        break;
+      }
+      stepper_->step(move_dir);
+    }
+  }
+}
+
+void McuSerialReaderNode::seek_cam_head_home_internal() {
+  if (!stepper_) return;
+
+  std::cout << "[StepperThread] Homing: moving anticlockwise towards Limit Switch 1..." << std::endl;
+
+  // Set home search speed: 15 RPM
+  stepper_->setSpeed(5);
+
+  // 1. Rotate towards limit switch 1 (anticlockwise, step 1) until press is detected
+  int step_count = 0;
+  while (!is_left_limit_switch_pressed() && running_.load()) {
+    stepper_->step(1);
+    step_count++;
+    // if (step_count % 100 == 0) {
+    //   std::cout << "[StepperThread] Moving anticlockwise (steps: " << step_count << ")..." << std::endl;
+    // }
+  }
+
+  // if (is_left_limit_switch_pressed()) {
+  //   std::cout << "[StepperThread] Limit Switch 1 pressed! Reversing direction towards Home Sensor..." << std::endl;
+  // }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // 2. Once limit switch 1 is pressed, rotate in opposite direction (clockwise, step -1) until home is detected
+  step_count = 0;
+  while (!is_home_sensor_active() && running_.load()) {
+    if (is_right_limit_switch_pressed()) {
+      std::cout << "[StepperThread] WARNING: Hit Limit Switch 2 before finding Home Sensor! Aborting homing." << std::endl;
+      break;
+    }
+    stepper_->step(-1);
+    step_count++;
+    if (step_count % 100 == 0) {
+      std::cout << "[StepperThread] Moving clockwise (steps: " << step_count << ")..." << std::endl;
+    }
+  }
+
+  // 3. Settle precisely on the home edge
+  if (is_home_sensor_active() && running_.load()) {
+    std::cout << "[StepperThread] Home sensor active! Settling precisely on the home edge..." << std::endl;
+    settle_home_edge(-1);
+    stepper_current_angle_ = 0.0f;
+    stepper_home_calibrated_ = true;
+    std::cout << "[StepperThread] Homing complete! Camera calibrated at 0.0 degrees." << std::endl;
+  } else {
+    std::cout << "[StepperThread] Homing failed or interrupted." << std::endl;
+  }
+}
+
+void McuSerialReaderNode::seek_cam_head_home() {
+  stepper_running_ = true;
+  seek_cam_head_home_internal();
+  if (stepper_) {
+    stepper_->disable();
+  }
+  stepper_running_ = false;
+}
+
+void McuSerialReaderNode::stepper_thread_func() {
+  std::cout << "[StepperThread] Background motion thread running" << std::endl;
+
+  // Always calibrate/home on startup, regardless of the initial home sensor state
+  seek_cam_head_home();
+
+  while (running_.load(std::memory_order_relaxed)) {
+    float target_angle = 0.0f;
+    bool has_new_target = false;
+
+    {
+      std::unique_lock<std::mutex> lock(stepper_mtx_);
+      stepper_cv_.wait_for(lock, std::chrono::milliseconds(100), [&]() {
+        return stepper_target_updated_.load() || !running_.load();
+      });
+
+      if (!running_.load()) {
+        break;
+      }
+
+      if (stepper_target_updated_.load()) {
+        target_angle = stepper_target_angle_.load();
+        stepper_target_updated_ = false;
+        has_new_target = true;
+      }
+    }
+
+    if (has_new_target) {
+      // Clamp target to valid range [-90.0f, 90.0f]
+      if (target_angle > 90.0f) target_angle = 90.0f;
+      if (target_angle < -90.0f) target_angle = -90.0f;
+
+      stepper_running_ = true;
+
+      // Only do physical switch homing if never calibrated since startup
+      if (!stepper_home_calibrated_) {
+        seek_cam_head_home_internal();
+        stepper_current_angle_ = 0.0f;
+        stepper_home_calibrated_ = true;
+      }
+
+      float current_angle = stepper_current_angle_.load();
+      static const float ANGLE_PER_STEP = 180.0f / TOTAL_STEPS;
+
+      if (stepper_ && stepper_home_calibrated_) {
+        stepper_->setSpeed(5);
+
+        if (target_angle > current_angle) {
+          while (current_angle < target_angle && running_.load()) {
+            if (is_right_limit_switch_pressed()) {
+              current_angle = 90.0f;
+              break;
+            }
+            stepper_->step(-1);
+            current_angle += ANGLE_PER_STEP;
+            if (current_angle > target_angle) {
+              current_angle = target_angle;
+              break;
+            }
+          }
+        } else if (target_angle < current_angle) {
+          while (current_angle > target_angle && running_.load()) {
+            if (is_left_limit_switch_pressed()) {
+              current_angle = -90.0f;
+              break;
+            }
+            stepper_->step(1);
+            current_angle -= ANGLE_PER_STEP;
+            if (current_angle < target_angle) {
+              current_angle = target_angle;
+              break;
+            }
+          }
+        }
+        stepper_current_angle_ = current_angle;
+      }
+
+      if (stepper_) {
+        stepper_->disable();
+      }
+      stepper_running_ = false;
+    }
+  }
+}
+
+void McuSerialReaderNode::set_stepper_target_angle(float target_angle) {
+  {
+    std::lock_guard<std::mutex> lock(stepper_mtx_);
+    stepper_target_angle_ = target_angle;
+    stepper_target_updated_ = true;
+  }
+  stepper_cv_.notify_all();
+}
+
+void McuSerialReaderNode::publish_stepper_status(uint64_t current_ms) {
+  static int last_running_val = -1;
+  int current_running_val = stepper_running_.load() ? 1 : 0;
+  
+  if (current_running_val != last_running_val) {
+    last_running_val = current_running_val;
+    
+    const auto &desc = TOPIC_REGISTRY[TID_STEPPER_MOTOR];
+    MsgHeader hdr{};
+    hdr.sensor_id = desc.sensor_id >= 0 ? static_cast<uint8_t>(desc.sensor_id) : 0;
+    hdr.seq_num = stepper_status_seq_;
+    hdr.timestamp_ms = current_ms;
+    
+    send_zmq_digital(desc, hdr, static_cast<uint8_t>(current_running_val));
+    stepper_status_seq_ = (stepper_status_seq_ + 1) & 0x0F;
+  }
+}
+
+void McuSerialReaderNode::publish_stepper_encoder(uint64_t current_ms) {
+  static int32_t last_ticks = -9999;
+  int32_t current_ticks = static_cast<int32_t>(stepper_current_angle_.load());
+  
+  if (current_ticks != last_ticks) {
+    last_ticks = current_ticks;
+    
+    const auto &desc = TOPIC_REGISTRY[TID_OPTICAL_ENCODER];
+    MsgHeader hdr{};
+    hdr.sensor_id = desc.sensor_id >= 0 ? static_cast<uint8_t>(desc.sensor_id) : 0;
+    hdr.seq_num = stepper_encoder_seq_;
+    hdr.timestamp_ms = current_ms;
+    
+    send_zmq_encoder(desc, hdr, current_ticks);
+    stepper_encoder_seq_ = (stepper_encoder_seq_ + 1) & 0x0F;
+  }
 }
 
 } // namespace oro

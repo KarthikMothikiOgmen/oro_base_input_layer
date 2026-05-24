@@ -128,7 +128,7 @@ void CommandIngressNode::command_worker_thread_func() {
 
         if (!desc) {
           final_mcu_response = "{\"status\":\"error\",\"message\":\"unsupported_topic\"}";
-        } else if (desc->sensor_id == -1 && desc->source == TopicSource::SYSTEM) {
+        } else if ((desc->sensor_id == -1 || topic_str == "/commands/camera_rotation") && desc->source == TopicSource::SYSTEM) {
           // ── UCES / Host Routing ───────────────────────────────────────────────
           int signal_id = -1;
           std::string signal_type;
@@ -148,6 +148,8 @@ void CommandIngressNode::command_worker_thread_func() {
             signal_id = 64; signal_type = "lid_actuation_command"; payload_obj["lid_id"] = 2; payload_obj["action"] = static_cast<int>(value);
           } else if (topic_str == "/commands/settings/apply") {
             signal_id = 98; signal_type = "settings_apply_success_status"; payload_obj["settings_profile_id"] = "default_profile_v1";
+          } else if (topic_str == "/commands/camera_rotation") {
+            signal_id = 134; signal_type = "camera_rotation_command"; payload_obj["angle"] = value;
           }
 
           if (signal_id != -1) {
