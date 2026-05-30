@@ -38,8 +38,8 @@ void CloudReceiver::run() {
     // inproc and wait for the synchronous MCU result.
     auto create_req_socket = [&]() {
       auto sock = std::make_unique<zmq::socket_t>(context_, zmq::socket_type::req);
-      sock->set(zmq::sockopt::rcvtimeo, 10000);
-      sock->set(zmq::sockopt::sndtimeo, 10000);
+      sock->set(zmq::sockopt::rcvtimeo, 20000);
+      sock->set(zmq::sockopt::sndtimeo, 20000);
       sock->set(zmq::sockopt::linger, 0); // Important for quick reset
       sock->connect(internal_endpoint_);
       return sock;
@@ -84,7 +84,7 @@ void CloudReceiver::run() {
               std::cerr << "[CloudReceiver] Internal REQ timeout. Resetting socket..." << std::endl;
               needs_reset = true;
               
-              std::string err_rep = "{\"status\":\"timeout\",\"message\":\"internal_mcu_timeout\"}";
+              std::string err_rep = "{\"status\":\"timeout\",\"message\":\"radxa_executor_timeout\"}";
               zmq::message_t err_msg(err_rep.size());
               memcpy(err_msg.data(), err_rep.data(), err_rep.size());
               rep_socket.send(err_msg, zmq::send_flags::none);
