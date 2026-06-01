@@ -1,0 +1,16 @@
+[Unit]
+Description=ORo Cloud WebSocket Bridge Service
+After=input_layer_node.service
+Requires=input_layer_node.service
+
+[Service]
+Type=simple
+User=radxa
+ExecStart=/home/radxa/oro_base/oro_base_input_layer/scripts/oro_cloud_bridge.py
+Restart=on-failure
+RestartSec=3
+Environment=ORO_USER_ID=ab92596e-3126-4396-8f6e-6ec04bc0ebbe
+Environment=ORO_JWT_SECRET_KEY=change-me-in-production-use-a-long-random-string
+
+[Install]
+WantedBy=multi-user.target

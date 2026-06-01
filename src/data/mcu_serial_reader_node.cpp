@@ -985,6 +985,16 @@ void McuSerialReaderNode::stepper_thread_func() {
     }
 
     if (has_new_target) {
+      if (target_angle == 999.0f) {
+        stepper_running_ = true;
+        seek_cam_head_home_internal();
+        if (stepper_) {
+          stepper_->disable();
+        }
+        stepper_running_ = false;
+        continue;
+      }
+
       // Clamp target to valid range [-90.0f, 90.0f]
       if (target_angle > 90.0f) target_angle = 90.0f;
       if (target_angle < -90.0f) target_angle = -90.0f;

@@ -27,7 +27,7 @@ int main() {
   zmq::context_t context(1);
 
   // Endpoints for this Phase are placeholders (e.g., localhost ports or IPC)
-  const std::string CLOUD_ENDPOINT = "tcp://*:5555";
+  const std::string CLOUD_ENDPOINT = "tcp://127.0.0.1:5555";
   const std::string SENSOR_PUB_ENDPOINT = "ipc:///tmp/oro_sensors.ipc";
   const std::string SYSTEM_PUB_ENDPOINT = "ipc:///tmp/oro_system.ipc";
   const std::string STATUS_PUB_ENDPOINT = "ipc:///tmp/oro_status.ipc";

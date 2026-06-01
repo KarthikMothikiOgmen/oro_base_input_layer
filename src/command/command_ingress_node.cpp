@@ -133,6 +133,11 @@ void CommandIngressNode::command_worker_thread_func() {
           int signal_id = -1;
           std::string signal_type;
           json payload_obj = {{"value", value}};
+          if (j.contains("payload") && j["payload"].is_object()) {
+            for (auto& el : j["payload"].items()) {
+              payload_obj[el.key()] = el.value();
+            }
+          }
 
           if (topic_str == "/commands/treat/dispense") {
             signal_id = 85; signal_type = "treat_dispense_command_event"; payload_obj["treat_quantity"] = value;
@@ -149,7 +154,10 @@ void CommandIngressNode::command_worker_thread_func() {
           } else if (topic_str == "/commands/settings/apply") {
             signal_id = 98; signal_type = "settings_apply_success_status"; payload_obj["settings_profile_id"] = "default_profile_v1";
           } else if (topic_str == "/commands/camera_rotation") {
-            signal_id = 134; signal_type = "camera_rotation_command"; payload_obj["angle"] = value;
+            signal_id = 134; signal_type = "camera_rotation_command";
+            if (!payload_obj.contains("angle")) {
+              payload_obj["angle"] = value;
+            }
           }
 
           if (signal_id != -1) {
