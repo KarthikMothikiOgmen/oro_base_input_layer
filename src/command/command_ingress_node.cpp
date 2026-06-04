@@ -20,6 +20,7 @@ CommandIngressNode::CommandIngressNode(zmq::context_t &context,
 
   mcu_req_socket_ =
       std::make_unique<zmq::socket_t>(context_, zmq::socket_type::req);
+  mcu_req_socket_->set(zmq::sockopt::rcvtimeo, 15000);
   mcu_req_socket_->connect(mcu_cmd_endpoint_);
 
   cmd_exec_push_socket_ =
@@ -28,6 +29,7 @@ CommandIngressNode::CommandIngressNode(zmq::context_t &context,
 
   cmd_exec_pull_socket_ =
       std::make_unique<zmq::socket_t>(context_, zmq::socket_type::pull);
+  cmd_exec_pull_socket_->set(zmq::sockopt::rcvtimeo, 15000);
   cmd_exec_pull_socket_->connect("ipc:///tmp/oro_cmd_result.ipc");
 
   status_pub_socket_ =

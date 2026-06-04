@@ -41,6 +41,8 @@ CONFIG_PATHS = [
     "/home/radxa/oro_base/oro_base_edge_layer/config/oro_base_edge_layer_config.json"
 ]
 
+CAMHEAD_STEP_ANGLE_DEG = 5.0
+
 def load_device_id() -> str:
     """Dynamically loads device_id from global configuration files."""
     for path in CONFIG_PATHS:
@@ -275,6 +277,7 @@ class CloudBridgeDaemon:
         self.zmq_sock = None
         self.running = False
         
+        
         # Camhead rotation tracking
         self.camhead_last_time = None
         self.camhead_last_speed = 0.0
@@ -311,64 +314,88 @@ class CloudBridgeDaemon:
 
     def process_camhead_rotation(self, payload: dict):
         """
-        Integrate incoming angular velocity commands and estimate
-        total angle rotated until a stop command is received.
+        Every movement command becomes a fixed-angle step.
+
+        direction = 1   -> clockwise 5°
+        direction = -1  -> counter-clockwise 5°
+        direction = 0   -> stop
         """
-        now = time.monotonic()
 
         action = str(payload.get("action", "move")).lower()
         direction = int(payload.get("direction", 0))
-        speed = float(payload.get("speed", 0.0))
 
-        calculated_angle_deg = None
-        calculated_direction = None
+        # Stop command
+        if direction == 0:
+            logger.info("CAMHEAD STOP received")
+            return action, None, None
 
-        if self.camhead_last_time is not None:
-            dt = now - self.camhead_last_time
-            delta_angle = self.camhead_last_speed * dt
+        logger.info(
+            f"CAMHEAD STEP | direction={direction} | "
+            f"angle={CAMHEAD_STEP_ANGLE_DEG} deg"
+        )
 
-            if self.camhead_last_direction == 1:
-                self.camhead_accumulated_angle_rad += delta_angle
-            else:
-                self.camhead_accumulated_angle_rad -= delta_angle
+        return action, CAMHEAD_STEP_ANGLE_DEG, direction
 
-        self.camhead_last_time = now
-        self.camhead_last_speed = speed
-        self.camhead_last_direction = direction
+    # def process_camhead_rotation(self, payload: dict):
+    #     """
+    #     Integrate incoming angular velocity commands and estimate
+    #     total angle rotated until a stop command is received.
+    #     """
+    #     now = time.monotonic()
 
-        if speed > 0:
-            logger.info(
-                "CAMHEAD MOVE | "
-                f"dir={direction} | "
-                f"speed={speed:.3f} rad/s | "
-                f"angle={degrees(abs(self.camhead_accumulated_angle_rad)):.2f} deg"
-            )
+    #     action = str(payload.get("action", "move")).lower()
+    #     direction = int(payload.get("direction", 0))
+    #     speed = float(payload.get("speed", 0.0))
 
-        if speed == 0.0 and abs(self.camhead_accumulated_angle_rad) > 0:
-            calculated_angle_deg = degrees(abs(self.camhead_accumulated_angle_rad))
-            calculated_direction = 1 if self.camhead_accumulated_angle_rad >= 0 else -1
+    #     calculated_angle_deg = None
+    #     calculated_direction = None
 
-            direction_str = (
-                "CLOCKWISE"
-                if self.camhead_accumulated_angle_rad > 0
-                else "COUNTER_CLOCKWISE"
-            )
+    #     if self.camhead_last_time is not None:
+    #         dt = now - self.camhead_last_time
+    #         delta_angle = self.camhead_last_speed * dt
 
-            logger.info(
-                "\n"
-                "=====================================================\n"
-                "CAMHEAD ROTATION COMPLETE\n"
-                f"Direction : {direction_str}\n"
-                f"Angle     : {abs(self.camhead_accumulated_angle_rad):.6f} rad\n"
-                f"Angle     : {calculated_angle_deg:.2f} deg\n"
-                "====================================================="
-            )
+    #         if self.camhead_last_direction == 1:
+    #             self.camhead_accumulated_angle_rad += delta_angle
+    #         else:
+    #             self.camhead_accumulated_angle_rad -= delta_angle
 
-            self.camhead_accumulated_angle_rad = 0.0
-            self.camhead_last_time = None
-            self.camhead_last_speed = 0.0
+    #     self.camhead_last_time = now
+    #     self.camhead_last_speed = speed
+    #     self.camhead_last_direction = direction
 
-        return action,calculated_angle_deg, calculated_direction
+    #     if speed > 0:
+    #         logger.info(
+    #             "CAMHEAD MOVE | "
+    #             f"dir={direction} | "
+    #             f"speed={speed:.3f} rad/s | "
+    #             f"angle={degrees(abs(self.camhead_accumulated_angle_rad)):.2f} deg"
+    #         )
+
+    #     if speed == 0.0 and abs(self.camhead_accumulated_angle_rad) > 0:
+    #         calculated_angle_deg = degrees(abs(self.camhead_accumulated_angle_rad))
+    #         calculated_direction = 1 if self.camhead_accumulated_angle_rad >= 0 else -1
+
+    #         direction_str = (
+    #             "CLOCKWISE"
+    #             if self.camhead_accumulated_angle_rad > 0
+    #             else "COUNTER_CLOCKWISE"
+    #         )
+
+    #         logger.info(
+    #             "\n"
+    #             "=====================================================\n"
+    #             "CAMHEAD ROTATION COMPLETE\n"
+    #             f"Direction : {direction_str}\n"
+    #             f"Angle     : {abs(self.camhead_accumulated_angle_rad):.6f} rad\n"
+    #             f"Angle     : {calculated_angle_deg:.2f} deg\n"
+    #             "====================================================="
+    #         )
+
+    #         self.camhead_accumulated_angle_rad = 0.0
+    #         self.camhead_last_time = None
+    #         self.camhead_last_speed = 0.0
+
+    #     return action,calculated_angle_deg, calculated_direction
 
     async def handle_websocket_message(self, websocket, message_str: str):
         """Processes incoming messages from the Cloud WSS connection."""

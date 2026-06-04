@@ -932,7 +932,7 @@ void McuSerialReaderNode::seek_cam_head_home_internal() {
     stepper_->step(-1);
     step_count++;
     if (step_count % 100 == 0) {
-      std::cout << "[StepperThread] Moving clockwise (steps: " << step_count << ")..." << std::endl;
+      // std::cout << "[StepperThread] Moving clockwise (steps: " << step_count << ")..." << std::endl;
     }
   }
 
