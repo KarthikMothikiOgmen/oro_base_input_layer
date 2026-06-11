@@ -475,6 +475,88 @@ class CloudBridgeDaemon:
                     }
                 await websocket.send(json.dumps(ws_rep))
 
+            elif command_type == "start_record_video":
+                logger.info("Routing start continuous video command to C++...")
+                cmd_dict = {
+                    "signal_id": 135,
+                    "signal_type": "video_capture_command_event",
+                    "command_id": command_id,
+                    "issued_by": "cloud_user",
+                    "event_time": int(time.time() * 1000),
+                    "payload": {
+                        "action": "start"
+                    }
+                }
+                reply = await self.send_zmq_command(cmd_dict)
+                if reply.get("status") == "success":
+                    ws_rep = {
+                        "command_id": command_id,
+                        "status": "success",
+                        "operation": "start_record_video",
+                        "message": "continuous_recording_started"
+                    }
+                else:
+                    ws_rep = {
+                        "command_id": command_id,
+                        "status": "failed",
+                        "error": reply.get("message", "failed_to_start_video")
+                    }
+                await websocket.send(json.dumps(ws_rep))
+
+            elif command_type == "stop_record_video":
+                logger.info("Routing stop continuous video command to C++...")
+                cmd_dict = {
+                    "signal_id": 135,
+                    "signal_type": "video_capture_command_event",
+                    "command_id": command_id,
+                    "issued_by": "cloud_user",
+                    "event_time": int(time.time() * 1000),
+                    "payload": {
+                        "action": "stop"
+                    }
+                }
+                reply = await self.send_zmq_command(cmd_dict)
+                if reply.get("status") == "success":
+                    ws_rep = {
+                        "command_id": command_id,
+                        "status": "success",
+                        "operation": "stop_record_video",
+                        "message": "continuous_recording_stopped"
+                    }
+                else:
+                    ws_rep = {
+                        "command_id": command_id,
+                        "status": "failed",
+                        "error": reply.get("message", "failed_to_stop_video")
+                    }
+                await websocket.send(json.dumps(ws_rep))
+
+            elif command_type == "record_video_pan":
+                logger.info("Routing panoramic video record command to C++...")
+                cmd_dict = {
+                    "signal_id": 139,
+                    "signal_type": "record_video_pan_command_event",
+                    "command_id": command_id,
+                    "issued_by": "cloud_user",
+                    "event_time": int(time.time() * 1000),
+                    "payload": {}
+                }
+                reply = await self.send_zmq_command(cmd_dict)
+                if reply.get("status") == "success":
+                    ws_rep = {
+                        "command_id": command_id,
+                        "status": "success",
+                        "operation": "record_video_pan",
+                        "message": "pan_video_capture_initiated"
+                    }
+                else:
+                    ws_rep = {
+                        "command_id": command_id,
+                        "status": "failed",
+                        "error": reply.get("message", "failed_to_initiate_pan")
+                    }
+                await websocket.send(json.dumps(ws_rep))
+
             elif command_type == "camhead_message":
                 action = str(payload.get("action", "")).lower()
                 if action == "home":
@@ -524,15 +606,69 @@ class CloudBridgeDaemon:
                 reply["command_id"] = command_id
                 await websocket.send(json.dumps(reply))
 
-            elif command_type == "feed":
-                grams = float(payload.get("grams", 100.0))
-                logger.info(f"Routing feed request to C++ ({grams}g)...")
+            elif command_type == "play_music":
+                track = str(payload.get("music_full_name", "breaking_bad.mp3"))
+                logger.info(f"Routing play music request to C++ (track={track})...")
+                action_code = 1
+                if "breaking_bad" in track:
+                    action_code = 1
+                elif "dandelions" in track:
+                    action_code = 2
+                elif "call_this_love" in track:
+                    action_code = 3
+                
+                file_id = track.rsplit('.', 1)[0] if '.' in track else track
+                storage_path = f"/home/radxa/Music/{track}"
+                
                 reply = await self.send_zmq_command({
-                    "topic": "/commands/feed",
-                    "value": grams
+                    "signal_id": 137,
+                    "signal_type": "play_music_event",
+                    "command_id": command_id,
+                    "issued_by": "cloud_user",
+                    "event_time": int(time.time() * 1000),
+                    "payload": {
+                        "action_code": action_code,
+                        "file_id": file_id,
+                        "storage_path": storage_path,
+                        "event_time": int(time.time() * 1000)
+                    }
                 })
                 reply["command_id"] = command_id
                 await websocket.send(json.dumps(reply))
+
+            elif command_type == "stop_music":
+                logger.info("Routing stop music request to C++...")
+                reply = await self.send_zmq_command({
+                    "signal_id": 138,
+                    "signal_type": "stop_music_event",
+                    "command_id": command_id,
+                    "issued_by": "cloud_user",
+                    "event_time": int(time.time() * 1000),
+                    "payload": {
+                        "action_code": 0,
+                        "file_id": "stop",
+                        "storage_path": "",
+                        "event_time": int(time.time() * 1000)
+                    }
+                })
+                reply["command_id"] = command_id
+                await websocket.send(json.dumps(reply))
+
+            elif command_type == "food_bowl_control":
+                bowl = 1 if str(payload.get("bowl")).lower() == "left" else 2
+                action = 0 if str(payload.get("action")).lower() == "close" else 1
+                if bowl is not None and action is not None:   # ← safe check
+                    logger.info(f"Routing feed request to C++ ({bowl} | {action})...")
+                    reply = await self.send_zmq_command({
+                        "topic": "/commands/feed",
+                        "lid_id": bowl,
+                        "action": action
+                    })
+                    reply["command_id"] = 64
+                    await websocket.send(json.dumps(reply))
+                    logger.info(f"Food bowl control result: {reply}")
+                else:
+                    logger.warning(f"Invalid food bowl command: {payload}")
 
             else:
                 # Generic pass-through mapping

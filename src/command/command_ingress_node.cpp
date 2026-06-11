@@ -153,6 +153,76 @@ void CommandIngressNode::command_worker_thread_func() {
             signal_id = 64; signal_type = "lid_actuation_command"; payload_obj["lid_id"] = 1; payload_obj["action"] = static_cast<int>(value);
           } else if (topic_str == "/commands/lid/2") {
             signal_id = 64; signal_type = "lid_actuation_command"; payload_obj["lid_id"] = 2; payload_obj["action"] = static_cast<int>(value);
+          } else if (topic_str == "/commands/audio/speakers") {
+            int action_code = -1;
+            if (payload_obj.contains("action_code")) {
+              if (payload_obj["action_code"].is_number()) {
+                action_code = payload_obj["action_code"].get<int>();
+              } else if (payload_obj["action_code"].is_string()) {
+                action_code = std::stoi(payload_obj["action_code"].get<std::string>());
+              }
+            } else {
+              action_code = static_cast<int>(value);
+            }
+
+            std::string track_name = "";
+            if (payload_obj.contains("track") && payload_obj["track"].is_string()) {
+              track_name = payload_obj["track"].get<std::string>();
+            }
+
+            if (!track_name.empty()) {
+              if (track_name.find("breaking_bad") != std::string::npos) {
+                action_code = 1;
+              } else if (track_name.find("dandelions") != std::string::npos) {
+                action_code = 2;
+              } else if (track_name.find("call_this_love") != std::string::npos) {
+                action_code = 3;
+              } else if (action_code <= 0) {
+                action_code = 1;
+              }
+            }
+
+            if (action_code == 0 || action_code == 97) {
+              signal_id = 138;
+              signal_type = "stop_music_event";
+            } else {
+              signal_id = 137;
+              signal_type = "play_music_event";
+            }
+
+            std::string file_id = "unknown_track";
+            std::string storage_path = "";
+            if (action_code == 1) {
+              file_id = "breaking_bad_intro";
+              storage_path = "/home/radxa/Music/breaking_bad_intro.mp3";
+            } else if (action_code == 2) {
+              file_id = "dandelions_violin";
+              storage_path = "/home/radxa/Music/dandelions_violin.mp3";
+            } else if (action_code == 3) {
+              file_id = "I_think_they_call_this_love";
+              storage_path = "/home/radxa/Music/I_think_they_call_this_love.mp3";
+            } else if (!track_name.empty()) {
+              file_id = track_name;
+              size_t dot_pos = file_id.rfind('.');
+              if (dot_pos != std::string::npos) {
+                file_id = file_id.substr(0, dot_pos);
+              }
+              storage_path = "/home/radxa/Music/" + track_name;
+            } else {
+              file_id = "breaking_bad_intro";
+              storage_path = "/home/radxa/Music/breaking_bad_intro.mp3";
+            }
+
+            payload_obj["action_code"] = action_code;
+            payload_obj["file_id"] = file_id;
+            payload_obj["storage_path"] = storage_path;
+            payload_obj["event_time"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+          } else if (topic_str == "/commands/feed") {
+            signal_id = 64;
+            signal_type = "lid_actuation_command";
+            payload_obj["lid_id"] = j.value("lid_id", 1);
+            payload_obj["action"] = j.value("action", 0);
           } else if (topic_str == "/commands/settings/apply") {
             signal_id = 98; signal_type = "settings_apply_success_status"; payload_obj["settings_profile_id"] = "default_profile_v1";
           } else if (topic_str == "/commands/camera_rotation") {
