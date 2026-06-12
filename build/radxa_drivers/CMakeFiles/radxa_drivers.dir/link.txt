@@ -1,2 +1,0 @@
-/usr/bin/ar qc libradxa_drivers.a CMakeFiles/radxa_drivers.dir/src/radxa_services.cpp.o CMakeFiles/radxa_drivers.dir/src/radxa_drivers_node.cpp.o CMakeFiles/radxa_drivers.dir/src/amg8833.c.o CMakeFiles/radxa_drivers.dir/src/gpio_sensor.cpp.o CMakeFiles/radxa_drivers.dir/src/stepper_driver.cpp.o CMakeFiles/radxa_drivers.dir/src/treat_dispenser.cpp.o
-/usr/bin/ranlib libradxa_drivers.a

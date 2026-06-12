@@ -230,6 +230,9 @@ void CommandIngressNode::command_worker_thread_func() {
             if (!payload_obj.contains("angle")) {
               payload_obj["angle"] = value;
             }
+          } else if (topic_str == "/commands/privacy_mode") {
+            signal_id = 140; signal_type = "privacy_mode_command_event";
+            payload_obj["enabled"] = static_cast<bool>(value >= 0.5f);
           }
 
           if (signal_id != -1) {

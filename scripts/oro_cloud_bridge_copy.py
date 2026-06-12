@@ -79,8 +79,8 @@ MEDIA_ROOT_VIDEO = "oro_base_video_audio"
 
 # Hardware details (matching C++ ffmpeg capture pipeline)
 CAMERA_DEVICE = "/dev/video13"
-IMAGE_DIR = "/home/radxa/Pictures/Command_Executor_Images"
-VIDEO_DIR = "/home/radxa/Videos/Command_Executor_Videos"
+IMAGE_DIR = "/home/radxa/oro_base_images"
+VIDEO_DIR = "/home/radxa/oro_base_video_audio"
 
 # Ensure target directories exist
 os.makedirs(IMAGE_DIR, exist_ok=True)
@@ -618,7 +618,7 @@ class CloudBridgeDaemon:
                     action_code = 3
                 
                 file_id = track.rsplit('.', 1)[0] if '.' in track else track
-                storage_path = f"/home/radxa/Music/{track}"
+                storage_path = f"/home/radxa/oro_base_video_audio/{track}"
                 
                 reply = await self.send_zmq_command({
                     "signal_id": 137,
@@ -649,6 +649,22 @@ class CloudBridgeDaemon:
                         "file_id": "stop",
                         "storage_path": "",
                         "event_time": int(time.time() * 1000)
+                    }
+                })
+                reply["command_id"] = command_id
+                await websocket.send(json.dumps(reply))
+
+            elif command_type == "privacy_mode" or command_type == "privacy_mode_control":
+                enabled = bool(payload.get("enabled", False))
+                logger.info(f"Routing privacy mode request to C++ (enabled={enabled})...")
+                reply = await self.send_zmq_command({
+                    "signal_id": 140,
+                    "signal_type": "privacy_mode_command_event",
+                    "command_id": command_id,
+                    "issued_by": "cloud_user",
+                    "event_time": int(time.time() * 1000),
+                    "payload": {
+                        "enabled": enabled
                     }
                 })
                 reply["command_id"] = command_id

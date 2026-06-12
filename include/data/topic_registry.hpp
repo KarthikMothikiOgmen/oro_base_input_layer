@@ -106,9 +106,10 @@ static constexpr uint8_t TID_LID1_MOTOR_STATUS = 42;
 static constexpr uint8_t TID_LID2_MOTOR_STATUS = 43;
 static constexpr uint8_t TID_OVERBOUND = 44;
 static constexpr uint8_t TID_SERVO_MOTOR_STATUS = 45;
+static constexpr uint8_t TID_CMD_PRIVACY_MODE = 46;
 
 // ── Topic Count: total number of topic descriptors in the registry ───────────
-static constexpr uint8_t TOPIC_COUNT = 46;
+static constexpr uint8_t TOPIC_COUNT = 47;
 
 // ── The Registry ────────────────────────────────────────────────────────────
 
@@ -180,6 +181,7 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 44,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
     //  Camera home servo motor: 0=idle, 1=running (PID_CAMERA_SERVO)
     { 45,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/servo_motor",      0.0f,   5000,   PID_CAMERA_SERVO  },
+    { 46,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/privacy_mode",                   0.0f,      0,   -1                 },
 }};
 // clang-format on
 
