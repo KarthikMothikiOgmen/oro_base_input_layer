@@ -35,7 +35,7 @@ enum class PublishPolicy : uint8_t {
   ON_THRESHOLD, // Publish when value delta exceeds threshold (analog sensors)
   PERIODIC,     // Publish at fixed intervals regardless of change
   CONTINUOUS,   // Publish every incoming reading (encoder while active)
-  ON_UPDATE     // Publish only when explicitly updated (display, clock)
+  ON_UPDATE    // Publish only when explicitly updated (display, clock)
 };
 
 // ── Topic Data Source ───────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ static constexpr uint8_t TID_CMD_LIVE_END = 26;
 static constexpr uint8_t TID_CMD_CAMERA_IR = 27;
 static constexpr uint8_t TID_CMD_AUDIO = 28;
 static constexpr uint8_t TID_CMD_SETTINGS = 29;
-static constexpr uint8_t TID_CMD_FW_UPDATE = 30;
+static constexpr uint8_t TID_CMD_FW_UPDATE = 30;  
 static constexpr uint8_t TID_TREAT_LEVEL_IR = 31;
 static constexpr uint8_t TID_TREAT_SORTER_IR = 32;
 static constexpr uint8_t TID_TREAT_THROWER_IR = 33;
@@ -101,15 +101,40 @@ static constexpr uint8_t TID_CMD_LID_1 = 37;
 static constexpr uint8_t TID_CMD_LID_2 = 38;
 static constexpr uint8_t TID_CMD_DISPLAY = 39;
 static constexpr uint8_t TID_CMD_LED = 40;
-static constexpr uint8_t TID_CMD_CAMERA_SERVO = 41;
+// static constexpr uint8_t TID_CMD_CAMERA_SERVO = 41;
 static constexpr uint8_t TID_LID1_MOTOR_STATUS = 42;
 static constexpr uint8_t TID_LID2_MOTOR_STATUS = 43;
 static constexpr uint8_t TID_OVERBOUND = 44;
-static constexpr uint8_t TID_SERVO_MOTOR_STATUS = 45;
+// static constexpr uint8_t TID_SERVO_MOTOR_STATUS = 45;
 static constexpr uint8_t TID_CMD_PRIVACY_MODE = 46;
 
+static constexpr uint8_t TID_FEEDING_PLATFORM_DETECT = 47;
+static constexpr uint8_t TID_WALL_PLUG_VOLTAGE_LEVEL = 48;
+static constexpr uint8_t TID_WATER_BOWL_DETECT = 49;
+
+static constexpr uint8_t TID_CMD_PWR_OFF = 50;
+static constexpr uint8_t TID_CMD_FACTORY_RESET = 51;
+static constexpr uint8_t TID_CMD_TARE_FOOD_BOWL_1 = 52;
+static constexpr uint8_t TID_CMD_TARE_FOOD_BOWL_2= 53;
+static constexpr uint8_t TID_CMD_TARE_WATER_TANK = 54;
+static constexpr uint8_t TID_CMD_DISPLAY_BRIGHTNESS = 55;
+
+static constexpr uint8_t TID_REQ_TIME = 56;
+static constexpr uint8_t TID_REQ_DISPLAY_BRIGHTNESS = 57;
+static constexpr uint8_t TID_REQ_FOOD_BOWL_1_TARE_OFFSET = 58;
+static constexpr uint8_t TID_REQ_FOOD_BOWL_2_TARE_OFFSET = 59;
+static constexpr uint8_t TID_REQ_WATER_TANK_TARE_OFFSET = 60;
+static constexpr uint8_t TID_RESP_TIME = 61;
+static constexpr uint8_t TID_RESP_DISPLAY_BRIGHTNESS = 62;
+static constexpr uint8_t TID_RESP_FOOD_BOWL_1_TARE_OFFSET = 63;
+static constexpr uint8_t TID_RESP_FOOD_BOWL_2_TARE_OFFSET = 64;
+static constexpr uint8_t TID_RESP_WATER_TANK_TARE_OFFSET = 65;
+static constexpr uint8_t TID_MCU = 66;
+// No TID set for receiving Tare offset values from MCU
+
+
 // ── Topic Count: total number of topic descriptors in the registry ───────────
-static constexpr uint8_t TOPIC_COUNT = 47;
+static constexpr uint8_t TOPIC_COUNT = 67;
 
 // ── The Registry ────────────────────────────────────────────────────────────
 
@@ -123,10 +148,10 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     {  3,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/water_level/bowl",                0.0f,      0,   SID_WATER_BOWL   },
     {  4,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/environment/humidity",            0.5f,  10000,   SID_HUMIDITY     },
     {  5,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/sensors/environment/temperature",         0.1f,  10000,   SID_TEMPERATURE  },
-    {  6,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/limit_switch_1",  0.0f,  10000,   SID_LIMIT_SW1    },
-    {  7,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/limit_switch_2",  0.0f,  10000,   SID_LIMIT_SW2    },
-    {  8,  TopicCategory::ENCODER, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/sensors/camera_rotation/optical_encoder", 0.0f,      0,   SID_ENCODER      },
-    {  9,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/home",            0.0f,   5000,   SID_HOME_SENSOR  },
+    {  6,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/limit_switch_1",  0.0f,  10000,   -1               }, //SID_LIMIT_SW1
+    {  7,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/limit_switch_2",  0.0f,  10000,   -1               }, //SID_LIMIT_SW2
+    {  8,  TopicCategory::ENCODER, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/sensors/camera_rotation/optical_encoder", 0.0f,      0,   -1              }, //SID_ENCODER
+    {  9,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/camera_rotation/home",            0.0f,   5000,   -1               }, //SID_HOME_SENSOR
     // ── System (/system/...) ────────────────────────────────────────────
     { 10,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/system/power/switch",                     0.0f,      0,   SID_POWER_SW     },
     { 11,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/system/power/battery_level",              1.0f,  60000,   SID_BATTERY      },
@@ -142,14 +167,14 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     //  Pump state: 0=off, 1=on
     { 17,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/water_pump",                       0.0f,      0,   PID_PUMP         },
     //  Camera rotation motor: 0=idle, 1=running
-    { 18,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/stepper_motor",    0.0f,      0,   PID_CAMERA_STEPPER },
+    { 18,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/stepper_motor",    0.0f,      0,   -1                 }, //PID_CAMERA_STEPPER
     //  Display: integer value shown on 7-segment (fixed-point ×100, decode with fixed_to_float)
     { 19,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::UART,   "/status/display/seven_segment",            0.0f,      0,   PID_DISPLAY      },
     //  LED mode (ANALOG float): 1.0=Food bowl 1 LED, 2.0=Food bowl 2 LED, 3.0=Water tank LED
     { 20,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::UART,   "/status/led_indicator",                    0.0f,      0,   PID_INDICATOR_LED},
 
     // ── Commands (/commands/...) ──────────────────────────────────────────
-    { 21,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/camera_rotation",                0.0f,      0,   PID_CAMERA_STEPPER },
+    { 21,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/camera_rotation",                0.0f,      0,   -1                 }, //PID_CAMERA_STEPPER
     { 22,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/feed",                           0.0f,      0,   -1                 },
     { 23,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/treat/dispense",                 0.0f,      0,   -1                 },
     { 24,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/photo_capture",                  0.0f,      0,   -1                 },
@@ -173,15 +198,37 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 38,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/lid/2",                          0.0f,      0,   PID_LID2_STEPPER  },
     { 39,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/display",                        0.0f,      0,   PID_DISPLAY       },
     { 40,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/led",                            0.0f,      0,   PID_INDICATOR_LED },
-    { 41,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/camera_rotation_servo",          0.0f,      0,   PID_CAMERA_SERVO  },
+    // { 41,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/camera_rotation_servo",          0.0f,      0,   PID_CAMERA_SERVO  },
     //  Lid motor status: 0=idle, 1=running
     { 42,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/1",                      0.0f,      0,   PID_LID1_STEPPER },
     //  Lid motor status: 0=idle, 1=running
     { 43,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/2",                      0.0f,      0,   PID_LID2_STEPPER },
     { 44,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
     //  Camera home servo motor: 0=idle, 1=running (PID_CAMERA_SERVO)
-    { 45,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/servo_motor",      0.0f,   5000,   PID_CAMERA_SERVO  },
+    // { 45,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/servo_motor",      0.0f,   5000,   PID_CAMERA_SERVO  },
     { 46,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/privacy_mode",                   0.0f,      0,   -1                 },
+
+    { 47,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/feeding_platform/detect",         0.0f,   1000,   SID_FP_DETECT     },
+    { 48,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/system/wall_plug/voltage_level",          0.5f,   5000,   SID_WALL_PLUG     },
+    { 49,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/water_bowl/detect",               0.0f,   1000,   SID_WATER_BOWL_DETECT },    
+    { 50,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/pwr_off",                    0.0f,     0,    PID_MCU               },
+    { 51,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/factory_reset",              0.0f,     0,    PID_MCU          },
+    { 52,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/tare_FB_1",                  0.0f,     0,    PID_MCU          },
+    { 53,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/tare_FB_2",                  0.0f,     0,    PID_MCU          },
+    { 54,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/tare_WT",                    0.0f,     0,    PID_MCU          },
+    { 55,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/display/brightness",             0.0f,     0,    PID_DISPLAY      },
+    { 56,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/time",                        0.0f,     0,    PID_MCU          },
+    { 57,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/brightness",                  0.0f,     0,    PID_MCU          },
+    { 58,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/tare_offset/FB_1",            0.0f,     0,    PID_MCU          },
+    { 59,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/tare_offset/FB_2",            0.0f,     0,    PID_MCU          },
+    { 60,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/tare_offset/WT",              0.0f,     0,    PID_MCU          },
+    { 61,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/time",                           0.0f,     0,    PID_MCU          },
+    { 62,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/brightness",                     0.0f,     0,    PID_MCU          },
+    { 63,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/tare_offset/FB_1",               0.0f,     0,    PID_MCU          },
+    { 64,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/tare_offset/FB_2",               0.0f,     0,    PID_MCU          },
+    { 65,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/tare_offset/WT",                 0.0f,     0,    PID_MCU          },
+    { 66,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::UART,    "/commands/mcu",                           0.0f,     0,    PID_MCU          },
+
 }};
 // clang-format on
 
@@ -202,22 +249,38 @@ inline const TopicDescriptor &lookup_by_topic_id(uint8_t tid) {
 inline const TopicDescriptor *lookup_by_sensor_id(uint8_t sid) {
   // Static LUT: sensor_id (0–15) → topic_id index (or 0xFF if unmapped)
   static constexpr std::array<uint8_t, SID_COUNT> SID_TO_TID = {{
-      TID_FOOD_WEIGHT_BOWL_1, // SID_LOAD_LEFT    → 0
-      TID_FOOD_WEIGHT_BOWL_2, // SID_LOAD_RIGHT   → 1
-      TID_WATER_LEVEL_TANK,   // SID_WATER_LEVEL  → 2
-      TID_WATER_LEVEL_BOWL,   // SID_WATER_BOWL   → 3
-      TID_HUMIDITY,           // SID_HUMIDITY     → 4
-      TID_TEMPERATURE,        // SID_TEMPERATURE  → 5
-      TID_LIMIT_SWITCH_1,     // SID_LIMIT_SW1    → 6
-      TID_LIMIT_SWITCH_2,     // SID_LIMIT_SW2    → 7
-      TID_OPTICAL_ENCODER,    // SID_ENCODER      → 8
-      TID_HOME_SENSOR,        // SID_HOME_SENSOR  → 9
-      TID_POWER_SWITCH,       // SID_POWER_SW     → 10
-      TID_BATTERY_LEVEL,      // SID_BATTERY      → 11
-      TID_HEARTBEAT,          // SID_HEARTBEAT    → 12
-      TID_NAV_BUTTON,         // SID_NAV_BUTTON   → 13 (0x0D)
-      TID_LID_1,              // SID_LID1_HALL    → 14 (0x0E)
-      TID_LID_2,              // SID_LID2_HALL    → 15 (0x0F)
+      // TID_FOOD_WEIGHT_BOWL_1, // SID_LOAD_LEFT    → 0
+      // TID_FOOD_WEIGHT_BOWL_2, // SID_LOAD_RIGHT   → 1
+      // TID_WATER_LEVEL_TANK,   // SID_WATER_LEVEL  → 2
+      // TID_WATER_LEVEL_BOWL,   // SID_WATER_BOWL   → 3
+      // TID_HUMIDITY,           // SID_HUMIDITY     → 4
+      // TID_TEMPERATURE,        // SID_TEMPERATURE  → 5
+      // TID_LIMIT_SWITCH_1,     // SID_LIMIT_SW1    → 6
+      // TID_LIMIT_SWITCH_2,     // SID_LIMIT_SW2    → 7
+      // TID_OPTICAL_ENCODER,    // SID_ENCODER      → 8
+      // TID_HOME_SENSOR,        // SID_HOME_SENSOR  → 9
+      // TID_POWER_SWITCH,       // SID_POWER_SW     → 10
+      // TID_BATTERY_LEVEL,      // SID_BATTERY      → 11
+      // TID_HEARTBEAT,          // SID_HEARTBEAT    → 12
+      // TID_NAV_BUTTON,         // SID_NAV_BUTTON   → 13 (0x0D)
+      // TID_LID_1,              // SID_LID1_HALL    → 14 (0x0E)
+      // TID_LID_2,              // SID_LID2_HALL    → 15 (0x0F)
+      TID_FOOD_WEIGHT_BOWL_1,
+      TID_FOOD_WEIGHT_BOWL_2,
+      TID_WATER_LEVEL_TANK,
+      TID_WATER_LEVEL_BOWL,
+      TID_HUMIDITY,
+      TID_TEMPERATURE,
+      TID_LID_1,
+      TID_LID_2,
+      TID_POWER_SWITCH,
+      TID_HEARTBEAT,
+      TID_NAV_BUTTON,
+      TID_FEEDING_PLATFORM_DETECT,
+      TID_BATTERY_LEVEL,
+      TID_WALL_PLUG_VOLTAGE_LEVEL,
+      TID_WATER_BOWL_DETECT,
+
   }};
 
   if (sid >= SID_COUNT) {
@@ -241,11 +304,11 @@ inline const TopicDescriptor *lookup_by_peripheral_id(uint8_t pid) {
       {TID_WATER_PUMP,         // PID_PUMP           → 17
        TID_LID1_MOTOR_STATUS,  // PID_LID1_STEPPER   → 42
        TID_LID2_MOTOR_STATUS,  // PID_LID2_STEPPER   → 43
-       TID_STEPPER_MOTOR,      // PID_CAMERA_STEPPER → 18
+       TID_MCU,                // Should be added here 
        TID_SEVEN_SEGMENT,      // PID_DISPLAY        → 19
        TID_LED_INDICATOR,      // PID_INDICATOR_LED  → 20
-       TID_SERVO_MOTOR_STATUS, // PID_CAMERA_SERVO   → 45
-       0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
+      //  TID_SERVO_MOTOR_STATUS, // PID_CAMERA_SERVO   → 45
+       0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
 
   uint8_t tid = PID_TO_TID[pid];
   if (tid == 0xFF || tid >= TOPIC_COUNT)

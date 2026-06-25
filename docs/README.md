@@ -433,7 +433,7 @@ sequenceDiagram
 #### Sequence Number Management
 
 - `cmd_seq_` is a 4-bit rolling counter (0–15) maintained by `CommandIngressNode`
-- Each outgoing `MSG_COMMAND` packet carries the current `cmd_seq_`, then increments
+- Each outgoing `MSG_CONTROL` packet carries the current `cmd_seq_`, then increments
 - The MCU echoes the same `seq` in its `MSG_ACK`, enabling correlation
 
 ---

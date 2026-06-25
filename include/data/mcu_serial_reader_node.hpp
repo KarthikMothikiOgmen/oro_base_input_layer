@@ -33,8 +33,7 @@
 #include <thread>
 #include <map>
 
-class GPIOSensor;
-class Stepper;
+#include "radxa_drivers/camhead_rotation.hpp"
 
 namespace oro {
 
@@ -128,7 +127,7 @@ private:
     zmq::socket_t& get_socket_for_topic(const char* zmq_topic);
 
     // ── Members ─────────────────────────────────────────────────────────
-
+ 
     // ZMQ
     zmq::context_t& context_;
     zmq::socket_t   sensor_pub_;
@@ -200,56 +199,9 @@ private:
 
     void connectivity_monitor_loop();
 
-    // Limit Switches (wired directly to Radxa GPIOs)
-    std::unique_ptr<GPIOSensor> limit_switch1_;
-    std::unique_ptr<GPIOSensor> limit_switch2_;
-
-    // Limit Switches debouncing state (instantaneous with 50ms lockout)
-    int limit_switch1_debounced_val_ = -1;
-    uint64_t limit_switch1_lockout_until_ms_ = 0;
-
-    int limit_switch2_debounced_val_ = -1;
-    uint64_t limit_switch2_lockout_until_ms_ = 0;
-
-    void publish_limit_switches(uint64_t current_ms);
-
-    // Home Sensor (wired directly to Radxa GPIOs)
-    std::unique_ptr<GPIOSensor> home_sensor_;
-
-    // Home Sensor debouncing state (instantaneous with 50ms lockout)
-    int home_sensor_debounced_val_ = -1;
-    uint64_t home_sensor_lockout_until_ms_ = 0;
-
-    void publish_home_sensor(uint64_t current_ms);
-
-    // Stepper Motor (wired directly to Radxa GPIOs)
-    std::unique_ptr<Stepper> stepper_;
-    std::thread stepper_thread_;
-    std::mutex stepper_mtx_;
-    std::condition_variable stepper_cv_;
-
-    static constexpr float TOTAL_STEPS = 6100.0f;
-    
-    std::atomic<float> stepper_current_angle_{0.0f};
-    std::atomic<float> stepper_target_angle_{0.0f};
-    std::atomic<bool> stepper_target_updated_{false};
-    std::atomic<bool> stepper_running_{false};
-    std::atomic<bool> stepper_home_calibrated_{false};
-
-    // Helper methods for homing/calibration
-    bool is_home_sensor_active();
-    bool is_left_limit_switch_pressed();
-    bool is_right_limit_switch_pressed();
-    
-    void settle_home_edge(int move_dir);
-    void seek_cam_head_home_internal();
-    void seek_cam_head_home();
-    void stepper_thread_func();
-
-public:
-    void set_stepper_target_angle(float target_angle);
-    void publish_stepper_status(uint64_t current_ms);
-    void publish_stepper_encoder(uint64_t current_ms);
+    // Cam Head Rotation (handled locally by Radxa GPIOs)
+    std::unique_ptr<CamHeadRotationNode> cam_head_;
+    void publish_cam_head_data(uint64_t current_ms);
 };
 
 }  // namespace oro

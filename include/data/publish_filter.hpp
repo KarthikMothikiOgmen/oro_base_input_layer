@@ -35,13 +35,15 @@ public:
 
   // Evaluate whether a message should be published for the given topic.
   // Updates internal state if publish is approved.
-  //
-  // @param desc   Topic descriptor from TOPIC_REGISTRY
-  // @param value  Analog value (used for ANALOG category)
-  // @param state  Digital state (used for DIGITAL category)
-  // @param ticks  Encoder ticks (used for ENCODER category)
-  // @param now_ms Current epoch milliseconds
-  // @return true if the message should be published
+  /*
+    @param desc   Topic descriptor from TOPIC_REGISTRY
+    @param value  Analog value (used for ANALOG category)
+    @param state  Digital state (used for DIGITAL category)
+    @param ticks  Encoder ticks (used for ENCODER category)
+    @param now_ms Current epoch milliseconds
+    @return true if the message should be published
+  */
+  
   bool should_publish(const TopicDescriptor &desc, float value, uint8_t state,
                       int32_t ticks, uint64_t now_ms);
 
