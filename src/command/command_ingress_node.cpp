@@ -1,7 +1,7 @@
 #include "command/command_ingress_node.hpp"
 #include "data/oro_protocol.hpp"
 #include "data/topic_registry.hpp"
-//#include "radxa_drivers/radxa_services.hpp"
+#include "radxa_drivers/radxa_services.hpp"
 #include <iostream>
 #include <nlohmann/json.hpp>
 
@@ -264,13 +264,13 @@ void CommandIngressNode::command_worker_thread_func() {
               final_mcu_response = "{\"status\":\"timeout\",\"message\":\"command_executor_timeout\"}";
             }
           } else {
-            //final_mcu_response = RadxaServices::process_command(j);
+            final_mcu_response = RadxaServices::process_command(j);
           }
         } else if (desc->sensor_id != -1 && (topic_str.find("/commands/") == 0 || desc->topic_id == TID_CMD_CAMERA_ROTATION)) {
           // ── MCU-Bound Commands ───────────────────────────────────────────────
           OroPacket pkt{};
           pkt.start = START_BYTE;
-          pkt.msg_type = PACK_MSG_TYPE(PRIO_HIGH, MSG_CONTROL);
+          pkt.msg_type = PACK_MSG_TYPE(PRIO_HIGH, MSG_COMMAND);
           pkt.id_seq = PACK_ID_SEQ(cmd_seq_, static_cast<uint8_t>(desc->sensor_id));
           cmd_seq_ = (cmd_seq_ + 1) & 0x0F;
 

@@ -29,7 +29,7 @@ static constexpr size_t PACKET_SIZE = 8;
 static constexpr uint8_t MSG_SENSOR_DATA = 0x01;
 static constexpr uint8_t MSG_PERIPHERAL_STATE = 0x02;
 static constexpr uint8_t MSG_HEARTBEAT = 0x03;
-static constexpr uint8_t MSG_CONTROL = 0x04;
+static constexpr uint8_t MSG_COMMAND = 0x04;
 static constexpr uint8_t MSG_ACK = 0x05;
 
 static const uint8_t MSG_DATA_REQ = 0x06; // Newly added for requesting data from MW
@@ -67,39 +67,22 @@ inline constexpr uint8_t PACK_ID_SEQ(uint8_t seq, uint8_t id) {
 // The user will modify these later as needed.
 
 enum SensorID : uint8_t {
-  // SID_LOAD_LEFT = 0x00,   // Food weight bowl 1
-  // SID_LOAD_RIGHT = 0x01,  // Food weight bowl 2
-  // SID_WATER_LEVEL = 0x02, // Water level tank
-  // SID_WATER_BOWL = 0x03,  // Water level bowl
-  // SID_HUMIDITY = 0x04,    // Ambient humidity
-  // SID_TEMPERATURE = 0x05, // Ambient temperature
-  // SID_LIMIT_SW1 = 0x06,   // Camera rotation limit switch 1
-  // SID_LIMIT_SW2 = 0x07,   // Camera rotation limit switch 2
-  // SID_ENCODER = 0x08,     // Camera rotation optical encoder
-  // SID_HOME_SENSOR = 0x09, // Camera home position sensor
-  // SID_POWER_SW = 0x0A,    // Power switch
-  // SID_BATTERY = 0x0B,     // Battery level
-  // SID_HEARTBEAT = 0x0C,   // Device heartbeat
-  // SID_NAV_BUTTON = 0x0D,  // Navigation button state (display cycling)
-  // SID_LID1_HALL = 0x0E,   // Lid 1 Hall sensors (bits 0=closed, 1=opened)
-  // SID_LID2_HALL = 0x0F,   // Lid 2 Hall sensors (bits 0=closed, 1=opened)
-  // SID_COUNT = 16 // Max sensor IDs in 4-bit field
-  SID_LOAD_LEFT = 0x00,
-  SID_LOAD_RIGHT = 0x01,
-  SID_WATER_LEVEL = 0x02,
-  SID_WATER_BOWL = 0x03,
-  SID_HUMIDITY = 0x04,
-  SID_TEMPERATURE = 0x05,
-  SID_LID1_HALL = 0x06,
-  SID_LID2_HALL = 0x07,
-  SID_POWER_SW = 0x08,
-  SID_HEARTBEAT = 0x09,
-  SID_NAV_BUTTON = 0x0A,
-  SID_FP_DETECT = 0x0B,
-  SID_BATTERY = 0x0C,
-  SID_WALL_PLUG = 0x0D,
-  SID_WATER_BOWL_DETECT = 0x0E,
-  SID_COUNT = 15
+  SID_LOAD_LEFT = 0x00,     // Food weight bowl 1
+  SID_LOAD_RIGHT = 0x01,    // Food weight bowl 2
+  SID_WATER_LEVEL = 0x02,   // Water level tank
+  SID_WATER_BOWL = 0x03,    // Water level bowl
+  SID_HUMIDITY = 0x04,      // Ambient humidity
+  SID_TEMPERATURE = 0x05,   // Ambient temperature
+  SID_LID1_HALL = 0x06,     // Lid 1 Hall sensors (bits 0=closed, 1=opened)
+  SID_LID2_HALL = 0x07,     // Lid 2 Hall sensors (bits 0=closed, 1=opened)
+  SID_POWER_SW = 0x08,      // Power switch
+  SID_HEARTBEAT = 0x09,     // Device heartbeat
+  SID_NAV_BUTTON = 0x0A,    // Navigation button state (display cycling)
+  SID_FP_DETECT = 0x0B,     // Feeding Platform detect
+  SID_BATTERY = 0x0C,       // Battery level
+  SID_WALL_PLUG = 0x0D,     // wall Plug voltage level
+  SID_WATER_BOWL_DETECT = 0x0E,  // Water Bowl presense detect
+  SID_COUNT = 15            // Max sensor IDs in 4-bit field
 };
 
 // ── Peripheral IDs (4-bit, max 16) ──────────────────────────────────────────

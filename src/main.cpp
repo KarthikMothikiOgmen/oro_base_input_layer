@@ -1,6 +1,6 @@
 #include "command/command_ingress_node.hpp"
 #include "data/mcu_serial_reader_node.hpp"
-//#include "radxa_drivers/radxa_drivers_node.hpp"
+#include "radxa_drivers/radxa_drivers_node.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -38,12 +38,12 @@ int main() {
   oro::McuSerialReaderNode mcu_node(context, SENSOR_PUB_ENDPOINT,
                                     SYSTEM_PUB_ENDPOINT, STATUS_PUB_ENDPOINT,
                                     MCU_CMD_ENDPOINT);
-  //#oro::RadxaDriversNode radxa_node(mcu_node.get_sensor_publisher());
+  oro::RadxaDriversNode radxa_node(mcu_node.get_sensor_publisher());
 
   // 3. Start Background Threads
   command_node.start();
   mcu_node.start();
-  //radxa_node.start();
+  radxa_node.start();
 
   // 4. Main Event Loop
   std::cout << "[InputLayer] Entering main polling loop...\n";
@@ -51,7 +51,7 @@ int main() {
     // Spin non-blocking over internal nodes
     command_node.spin_once();
     mcu_node.spin_once();
-    // radxa_node.spin_once();
+    radxa_node.spin_once();
 
     // Brief sleep to yield CPU. In high-performance, we would use zmq::poll
     // tightly here.
@@ -61,7 +61,7 @@ int main() {
   // 5. Teardown
   command_node.stop();
   mcu_node.stop();
-  // radxa_node.stop();
+  radxa_node.stop();
   // ZMQ context will gracefully shut itself down via RAII when it goes out of
   // scope.
 

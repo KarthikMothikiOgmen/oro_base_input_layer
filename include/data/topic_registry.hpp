@@ -35,7 +35,7 @@ enum class PublishPolicy : uint8_t {
   ON_THRESHOLD, // Publish when value delta exceeds threshold (analog sensors)
   PERIODIC,     // Publish at fixed intervals regardless of change
   CONTINUOUS,   // Publish every incoming reading (encoder while active)
-  ON_UPDATE    // Publish only when explicitly updated (display, clock)
+  ON_UPDATE     // Publish only when explicitly updated (display, clock)
 };
 
 // ── Topic Data Source ───────────────────────────────────────────────────────
@@ -102,39 +102,39 @@ static constexpr uint8_t TID_CMD_LID_2 = 38;
 static constexpr uint8_t TID_CMD_DISPLAY = 39;
 static constexpr uint8_t TID_CMD_LED = 40;
 // static constexpr uint8_t TID_CMD_CAMERA_SERVO = 41;
-static constexpr uint8_t TID_LID1_MOTOR_STATUS = 42;
-static constexpr uint8_t TID_LID2_MOTOR_STATUS = 43;
-static constexpr uint8_t TID_OVERBOUND = 44;
+static constexpr uint8_t TID_LID1_MOTOR_STATUS = 41;
+static constexpr uint8_t TID_LID2_MOTOR_STATUS = 42;
+static constexpr uint8_t TID_OVERBOUND = 43;
 // static constexpr uint8_t TID_SERVO_MOTOR_STATUS = 45;
-static constexpr uint8_t TID_CMD_PRIVACY_MODE = 46;
+static constexpr uint8_t TID_CMD_PRIVACY_MODE = 44;
 
-static constexpr uint8_t TID_FEEDING_PLATFORM_DETECT = 47;
-static constexpr uint8_t TID_WALL_PLUG_VOLTAGE_LEVEL = 48;
-static constexpr uint8_t TID_WATER_BOWL_DETECT = 49;
+static constexpr uint8_t TID_FEEDING_PLATFORM_DETECT = 45;
+static constexpr uint8_t TID_WALL_PLUG_VOLTAGE_LEVEL = 46;
+static constexpr uint8_t TID_WATER_BOWL_DETECT = 47;
 
-static constexpr uint8_t TID_CMD_PWR_OFF = 50;
-static constexpr uint8_t TID_CMD_FACTORY_RESET = 51;
-static constexpr uint8_t TID_CMD_TARE_FOOD_BOWL_1 = 52;
-static constexpr uint8_t TID_CMD_TARE_FOOD_BOWL_2= 53;
-static constexpr uint8_t TID_CMD_TARE_WATER_TANK = 54;
-static constexpr uint8_t TID_CMD_DISPLAY_BRIGHTNESS = 55;
+static constexpr uint8_t TID_CMD_PWR_OFF = 48;
+static constexpr uint8_t TID_CMD_FACTORY_RESET = 49;
+static constexpr uint8_t TID_CMD_TARE_FOOD_BOWL_1 = 50;
+static constexpr uint8_t TID_CMD_TARE_FOOD_BOWL_2= 51;
+static constexpr uint8_t TID_CMD_TARE_WATER_TANK = 52;
+static constexpr uint8_t TID_CMD_DISPLAY_BRIGHTNESS = 53;
 
-static constexpr uint8_t TID_REQ_TIME = 56;
-static constexpr uint8_t TID_REQ_DISPLAY_BRIGHTNESS = 57;
-static constexpr uint8_t TID_REQ_FOOD_BOWL_1_TARE_OFFSET = 58;
-static constexpr uint8_t TID_REQ_FOOD_BOWL_2_TARE_OFFSET = 59;
-static constexpr uint8_t TID_REQ_WATER_TANK_TARE_OFFSET = 60;
-static constexpr uint8_t TID_RESP_TIME = 61;
-static constexpr uint8_t TID_RESP_DISPLAY_BRIGHTNESS = 62;
-static constexpr uint8_t TID_RESP_FOOD_BOWL_1_TARE_OFFSET = 63;
-static constexpr uint8_t TID_RESP_FOOD_BOWL_2_TARE_OFFSET = 64;
-static constexpr uint8_t TID_RESP_WATER_TANK_TARE_OFFSET = 65;
-static constexpr uint8_t TID_MCU = 66;
+static constexpr uint8_t TID_REQ_TIME = 54;
+static constexpr uint8_t TID_REQ_DISPLAY_BRIGHTNESS = 55;
+static constexpr uint8_t TID_REQ_FOOD_BOWL_1_TARE_OFFSET = 56;
+static constexpr uint8_t TID_REQ_FOOD_BOWL_2_TARE_OFFSET = 57;
+static constexpr uint8_t TID_REQ_WATER_TANK_TARE_OFFSET = 58;
+static constexpr uint8_t TID_RESP_TIME = 59;
+static constexpr uint8_t TID_RESP_DISPLAY_BRIGHTNESS = 60;
+static constexpr uint8_t TID_RESP_FOOD_BOWL_1_TARE_OFFSET = 61;
+static constexpr uint8_t TID_RESP_FOOD_BOWL_2_TARE_OFFSET = 62;
+static constexpr uint8_t TID_RESP_WATER_TANK_TARE_OFFSET = 63;
+static constexpr uint8_t TID_MCU = 64;
 // No TID set for receiving Tare offset values from MCU
 
 
 // ── Topic Count: total number of topic descriptors in the registry ───────────
-static constexpr uint8_t TOPIC_COUNT = 67;
+static constexpr uint8_t TOPIC_COUNT = 65;
 
 // ── The Registry ────────────────────────────────────────────────────────────
 
@@ -200,34 +200,34 @@ static constexpr std::array<TopicDescriptor, TOPIC_COUNT> TOPIC_REGISTRY = {{
     { 40,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/led",                            0.0f,      0,   PID_INDICATOR_LED },
     // { 41,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/camera_rotation_servo",          0.0f,      0,   PID_CAMERA_SERVO  },
     //  Lid motor status: 0=idle, 1=running
-    { 42,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/1",                      0.0f,      0,   PID_LID1_STEPPER },
+    { 41,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/1",                      0.0f,      0,   PID_LID1_STEPPER },
     //  Lid motor status: 0=idle, 1=running
-    { 43,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/2",                      0.0f,      0,   PID_LID2_STEPPER },
-    { 44,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
+    { 42,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/lid_motor/2",                      0.0f,      0,   PID_LID2_STEPPER },
+    { 43,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::SYSTEM, "/system/reserved/overbound",               0.0f,      0,   -1                 },
     //  Camera home servo motor: 0=idle, 1=running (PID_CAMERA_SERVO)
     // { 45,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/status/camera_rotation/servo_motor",      0.0f,   5000,   PID_CAMERA_SERVO  },
-    { 46,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/privacy_mode",                   0.0f,      0,   -1                 },
+    { 44,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/privacy_mode",                   0.0f,      0,   -1                 },
 
-    { 47,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/feeding_platform/detect",         0.0f,   1000,   SID_FP_DETECT     },
-    { 48,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/system/wall_plug/voltage_level",          0.5f,   5000,   SID_WALL_PLUG     },
-    { 49,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/water_bowl/detect",               0.0f,   1000,   SID_WATER_BOWL_DETECT },    
-    { 50,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/pwr_off",                    0.0f,     0,    PID_MCU               },
-    { 51,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/factory_reset",              0.0f,     0,    PID_MCU          },
-    { 52,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/tare_FB_1",                  0.0f,     0,    PID_MCU          },
-    { 53,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/tare_FB_2",                  0.0f,     0,    PID_MCU          },
-    { 54,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/tare_WT",                    0.0f,     0,    PID_MCU          },
-    { 55,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/display/brightness",             0.0f,     0,    PID_DISPLAY      },
-    { 56,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/time",                        0.0f,     0,    PID_MCU          },
-    { 57,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/brightness",                  0.0f,     0,    PID_MCU          },
-    { 58,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/tare_offset/FB_1",            0.0f,     0,    PID_MCU          },
-    { 59,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/tare_offset/FB_2",            0.0f,     0,    PID_MCU          },
-    { 60,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/tare_offset/WT",              0.0f,     0,    PID_MCU          },
-    { 61,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/time",                           0.0f,     0,    PID_MCU          },
-    { 62,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/brightness",                     0.0f,     0,    PID_MCU          },
-    { 63,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/tare_offset/FB_1",               0.0f,     0,    PID_MCU          },
-    { 64,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/tare_offset/FB_2",               0.0f,     0,    PID_MCU          },
-    { 65,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/tare_offset/WT",                 0.0f,     0,    PID_MCU          },
-    { 66,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::UART,    "/commands/mcu",                           0.0f,     0,    PID_MCU          },
+    { 45,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/feeding_platform/detect",         0.0f,   1000,   SID_FP_DETECT     },
+    { 46,  TopicCategory::ANALOG,  PublishPolicy::ON_THRESHOLD, TopicSource::UART,   "/system/wall_plug/voltage_level",          0.5f,   5000,   SID_WALL_PLUG     },
+    { 47,  TopicCategory::DIGITAL, PublishPolicy::ON_CHANGE,    TopicSource::UART,   "/sensors/water_bowl/detect",               0.0f,   1000,   SID_WATER_BOWL_DETECT },    
+    { 48,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/pwr_off",                    0.0f,     0,    PID_MCU               },
+    { 49,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/factory_reset",              0.0f,     0,    PID_MCU          },
+    { 50,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/tare_FB_1",                  0.0f,     0,    PID_MCU          },
+    { 51,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/tare_FB_2",                  0.0f,     0,    PID_MCU          },
+    { 52,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/mcu/tare_WT",                    0.0f,     0,    PID_MCU          },
+    { 53,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/commands/display/brightness",             0.0f,     0,    PID_DISPLAY      },
+    { 54,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/time",                        0.0f,     0,    PID_MCU          },
+    { 55,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/brightness",                  0.0f,     0,    PID_MCU          },
+    { 56,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/tare_offset/FB_1",            0.0f,     0,    PID_MCU          },
+    { 57,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/tare_offset/FB_2",            0.0f,     0,    PID_MCU          },
+    { 58,  TopicCategory::DIGITAL, PublishPolicy::CONTINUOUS,   TopicSource::UART,   "/request/mcu/tare_offset/WT",              0.0f,     0,    PID_MCU          },
+    { 59,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/time",                           0.0f,     0,    PID_MCU          },
+    { 60,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/brightness",                     0.0f,     0,    PID_MCU          },
+    { 61,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/tare_offset/FB_1",               0.0f,     0,    PID_MCU          },
+    { 62,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/tare_offset/FB_2",               0.0f,     0,    PID_MCU          },
+    { 63,  TopicCategory::ANALOG,  PublishPolicy::ON_UPDATE,    TopicSource::SYSTEM, "/resp/mcu/tare_offset/WT",                 0.0f,     0,    PID_MCU          },
+    { 64,  TopicCategory::DIGITAL, PublishPolicy::ON_UPDATE,    TopicSource::UART,    "/commands/mcu",                           0.0f,     0,    PID_MCU          },
 
 }};
 // clang-format on
@@ -249,37 +249,21 @@ inline const TopicDescriptor &lookup_by_topic_id(uint8_t tid) {
 inline const TopicDescriptor *lookup_by_sensor_id(uint8_t sid) {
   // Static LUT: sensor_id (0–15) → topic_id index (or 0xFF if unmapped)
   static constexpr std::array<uint8_t, SID_COUNT> SID_TO_TID = {{
-      // TID_FOOD_WEIGHT_BOWL_1, // SID_LOAD_LEFT    → 0
-      // TID_FOOD_WEIGHT_BOWL_2, // SID_LOAD_RIGHT   → 1
-      // TID_WATER_LEVEL_TANK,   // SID_WATER_LEVEL  → 2
-      // TID_WATER_LEVEL_BOWL,   // SID_WATER_BOWL   → 3
-      // TID_HUMIDITY,           // SID_HUMIDITY     → 4
-      // TID_TEMPERATURE,        // SID_TEMPERATURE  → 5
-      // TID_LIMIT_SWITCH_1,     // SID_LIMIT_SW1    → 6
-      // TID_LIMIT_SWITCH_2,     // SID_LIMIT_SW2    → 7
-      // TID_OPTICAL_ENCODER,    // SID_ENCODER      → 8
-      // TID_HOME_SENSOR,        // SID_HOME_SENSOR  → 9
-      // TID_POWER_SWITCH,       // SID_POWER_SW     → 10
-      // TID_BATTERY_LEVEL,      // SID_BATTERY      → 11
-      // TID_HEARTBEAT,          // SID_HEARTBEAT    → 12
-      // TID_NAV_BUTTON,         // SID_NAV_BUTTON   → 13 (0x0D)
-      // TID_LID_1,              // SID_LID1_HALL    → 14 (0x0E)
-      // TID_LID_2,              // SID_LID2_HALL    → 15 (0x0F)
-      TID_FOOD_WEIGHT_BOWL_1,
-      TID_FOOD_WEIGHT_BOWL_2,
-      TID_WATER_LEVEL_TANK,
-      TID_WATER_LEVEL_BOWL,
-      TID_HUMIDITY,
-      TID_TEMPERATURE,
-      TID_LID_1,
-      TID_LID_2,
-      TID_POWER_SWITCH,
-      TID_HEARTBEAT,
-      TID_NAV_BUTTON,
-      TID_FEEDING_PLATFORM_DETECT,
-      TID_BATTERY_LEVEL,
-      TID_WALL_PLUG_VOLTAGE_LEVEL,
-      TID_WATER_BOWL_DETECT,
+      TID_FOOD_WEIGHT_BOWL_1,     // SID_LOAD_LEFT    → 0
+      TID_FOOD_WEIGHT_BOWL_2,     // SID_LOAD_RIGHT   → 1
+      TID_WATER_LEVEL_TANK,       // SID_WATER_LEVEL  → 2
+      TID_WATER_LEVEL_BOWL,       // SID_WATER_BOWL   → 3
+      TID_HUMIDITY,               // SID_HUMIDITY     → 4
+      TID_TEMPERATURE,            // SID_TEMPERATURE  → 5
+      TID_LID_1,                  // SID_LID1_HALL    → 6
+      TID_LID_2,                  // SID_LID2_HALL    → 7
+      TID_POWER_SWITCH,           // SID_POWER_SW     → 8
+      TID_HEARTBEAT,              // SID_HEARTBEAT    → 9
+      TID_NAV_BUTTON,             // SID_NAV_BUTTON   → 10
+      TID_FEEDING_PLATFORM_DETECT,// SID_FP_DETECT    → 11
+      TID_BATTERY_LEVEL,          // SID_BATTERY      → 12
+      TID_WALL_PLUG_VOLTAGE_LEVEL,// SID_WALL_PLUG    → 13
+      TID_WATER_BOWL_DETECT,      // SID_WATER_BOWL_DETECT  → 14
 
   }};
 
