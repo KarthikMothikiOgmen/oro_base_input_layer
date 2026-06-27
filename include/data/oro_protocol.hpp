@@ -32,6 +32,9 @@ static constexpr uint8_t MSG_HEARTBEAT = 0x03;
 static constexpr uint8_t MSG_COMMAND = 0x04;
 static constexpr uint8_t MSG_ACK = 0x05;
 
+static const uint8_t MSG_DATA_REQ = 0x06; // Newly added for requesting data from MW
+static const uint8_t MSG_DATA_RESPONSE = 0x07;
+
 // ── Priority Levels (upper 2 bits of msg_type byte) ────────────────────────
 
 static constexpr uint8_t PRIO_LOW = 0x00;  // 0b00
@@ -64,24 +67,22 @@ inline constexpr uint8_t PACK_ID_SEQ(uint8_t seq, uint8_t id) {
 // The user will modify these later as needed.
 
 enum SensorID : uint8_t {
-  SID_LOAD_LEFT = 0x00,   // Food weight bowl 1
-  SID_LOAD_RIGHT = 0x01,  // Food weight bowl 2
-  SID_WATER_LEVEL = 0x02, // Water level tank
-  SID_WATER_BOWL = 0x03,  // Water level bowl
-  SID_HUMIDITY = 0x04,    // Ambient humidity
-  SID_TEMPERATURE = 0x05, // Ambient temperature
-  SID_LIMIT_SW1 = 0x06,   // Camera rotation limit switch 1
-  SID_LIMIT_SW2 = 0x07,   // Camera rotation limit switch 2
-  SID_ENCODER = 0x08,     // Camera rotation optical encoder
-  SID_HOME_SENSOR = 0x09, // Camera home position sensor
-  SID_POWER_SW = 0x0A,    // Power switch
-  SID_BATTERY = 0x0B,     // Battery level
-  SID_HEARTBEAT = 0x0C,   // Device heartbeat
-  SID_NAV_BUTTON = 0x0D,  // Navigation button state (display cycling)
-  SID_LID1_HALL = 0x0E,   // Lid 1 Hall sensors (bits 0=closed, 1=opened)
-  SID_LID2_HALL = 0x0F,   // Lid 2 Hall sensors (bits 0=closed, 1=opened)
-
-  SID_COUNT = 16 // Max sensor IDs in 4-bit field
+  SID_LOAD_LEFT = 0x00,     // Food weight bowl 1
+  SID_LOAD_RIGHT = 0x01,    // Food weight bowl 2
+  SID_WATER_LEVEL = 0x02,   // Water level tank
+  SID_WATER_BOWL = 0x03,    // Water level bowl
+  SID_HUMIDITY = 0x04,      // Ambient humidity
+  SID_TEMPERATURE = 0x05,   // Ambient temperature
+  SID_LID1_HALL = 0x06,     // Lid 1 Hall sensors (bits 0=closed, 1=opened)
+  SID_LID2_HALL = 0x07,     // Lid 2 Hall sensors (bits 0=closed, 1=opened)
+  SID_POWER_SW = 0x08,      // Power switch
+  SID_HEARTBEAT = 0x09,     // Device heartbeat
+  SID_NAV_BUTTON = 0x0A,    // Navigation button state (display cycling)
+  SID_FP_DETECT = 0x0B,     // Feeding Platform detect
+  SID_BATTERY = 0x0C,       // Battery level
+  SID_WALL_PLUG = 0x0D,     // wall Plug voltage level
+  SID_WATER_BOWL_DETECT = 0x0E,  // Water Bowl presense detect
+  SID_COUNT = 15            // Max sensor IDs in 4-bit field
 };
 
 // ── Peripheral IDs (4-bit, max 16) ──────────────────────────────────────────
@@ -92,10 +93,11 @@ enum PeripheralID : uint8_t {
   PID_PUMP = 0x00,
   PID_LID1_STEPPER = 0x01,
   PID_LID2_STEPPER = 0x02,
-  PID_CAMERA_STEPPER = 0x03,
+  //PID_CAMERA_STEPPER = 0x03,
+  PID_MCU = 0x03,
   PID_DISPLAY = 0x04,
   PID_INDICATOR_LED = 0x05,
-  PID_CAMERA_SERVO = 0x06,
+  // PID_CAMERA_SERVO = 0x06,
 };
 
 // ── ACK Status Codes (used in MSG_ACK payload) ─────────────────────────────

@@ -274,7 +274,7 @@ void CommandIngressNode::command_worker_thread_func() {
           pkt.id_seq = PACK_ID_SEQ(cmd_seq_, static_cast<uint8_t>(desc->sensor_id));
           cmd_seq_ = (cmd_seq_ + 1) & 0x0F;
 
-          if (desc->topic_id == TID_CMD_CAMERA_ROTATION || desc->topic_id == TID_CMD_CAMERA_SERVO ||
+          if (desc->topic_id == TID_CMD_CAMERA_ROTATION ||
               desc->topic_id == TID_CMD_DISPLAY || desc->topic_id == TID_CMD_LED) {
             pack_value_i32(pkt.value, static_cast<int32_t>(value * 100.0f));
           } else {
